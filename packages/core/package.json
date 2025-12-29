@@ -1,0 +1,69 @@
+{
+  "name": "@relay/core",
+  "version": "1.0.0",
+  "description": "Core messaging integrations - Unipile, Twilio, Uazapi and more",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./src/index.js",
+      "types": "./src/index.d.ts"
+    },
+    "./providers/unipile": {
+      "require": "./src/providers/unipile/index.js"
+    },
+    "./events": {
+      "require": "./src/events/index.js"
+    },
+    "./queue": {
+      "require": "./src/queue/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "unipile",
+    "twilio",
+    "uazapi",
+    "messaging",
+    "webhooks",
+    "linkedin",
+    "whatsapp",
+    "instagram",
+    "telegram",
+    "multi-channel"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guilhermegoulart1/relay.git",
+    "directory": "packages/core"
+  },
+  "author": "Guilherme Goulart <guilherme@leadraze.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/guilhermegoulart1/relay/issues"
+  },
+  "homepage": "https://github.com/guilhermegoulart1/relay/tree/main/packages/core#readme",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "form-data": "^4.0.1"
+  },
+  "peerDependencies": {
+    "bull": "^4.0.0",
+    "ioredis": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "bull": {
+      "optional": true
+    },
+    "ioredis": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
