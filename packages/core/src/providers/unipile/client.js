@@ -8,6 +8,7 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const { BaseProvider } = require('../base');
+const { UnipileWebhookManager } = require('./webhooks-manager');
 
 /**
  * Unipile Provider Configuration
@@ -43,6 +44,7 @@ class UnipileProvider extends BaseProvider {
     this.connections = new UnipileConnectionManager(this);
     this.linkedin = new UnipileLinkedInManager(this);
     this.messaging = new UnipileMessagingManager(this);
+    this.webhooks = new UnipileWebhookManager(this);
   }
 
   /**

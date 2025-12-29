@@ -18,6 +18,7 @@
  */
 
 const { UnipileProvider } = require('./client');
+const { UnipileWebhookManager } = require('./webhooks-manager');
 const {
   parseUnipileWebhook,
   parseUnipileWebhookRaw,
@@ -28,6 +29,7 @@ const {
 
 module.exports = {
   UnipileProvider,
+  UnipileWebhookManager,
   parseUnipileWebhook,
   parseUnipileWebhookRaw,
   validateUnipileSignature,
