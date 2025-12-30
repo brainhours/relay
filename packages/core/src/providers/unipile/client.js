@@ -9,6 +9,11 @@ const axios = require('axios');
 const FormData = require('form-data');
 const { BaseProvider } = require('../base');
 const { UnipileWebhookManager } = require('./webhooks-manager');
+const { UnipilePostsManager } = require('./posts');
+const { UnipileReactionsManager } = require('./reactions');
+const { UnipileCommentsManager } = require('./comments');
+const { UnipileCompanyManager } = require('./company');
+const { UnipileJobsManager } = require('./jobs');
 
 /**
  * Unipile Provider Configuration
@@ -45,6 +50,14 @@ class UnipileProvider extends BaseProvider {
     this.linkedin = new UnipileLinkedInManager(this);
     this.messaging = new UnipileMessagingManager(this);
     this.webhooks = new UnipileWebhookManager(this);
+    this.searchParams = new UnipileSearchParamsManager(this);
+
+    // New managers (v1.3.0)
+    this.posts = new UnipilePostsManager(this);
+    this.reactions = new UnipileReactionsManager(this);
+    this.comments = new UnipileCommentsManager(this);
+    this.company = new UnipileCompanyManager(this);
+    this.jobs = new UnipileJobsManager(this);
   }
 
   /**
@@ -224,13 +237,47 @@ class UnipileUserManager {
   }
 
   /**
-   * Get full user profile with all LinkedIn sections
-   * @param {string} accountId
-   * @param {string} userId
-   * @returns {Promise<Object>}
+   * Get full user profile with all LinkedIn sections and enrichment data
+   * Returns all available profile data including:
+   * - Basic info (name, headline, location, summary)
+   * - Experience (positions with company, role, duration)
+   * - Education (schools, degrees, dates)
+   * - Skills (with endorsement counts)
+   * - Certifications
+   * - Publications
+   * - Projects
+   * - Volunteer experience
+   * - Honors and awards
+   * - Languages (with proficiency level)
+   * - Courses
+   * - Patents
+   * - Recommendations count
+   * - is_open_to_work flag
+   * - is_hiring flag
+   * - Premium type
+   *
+   * @param {string} accountId - Unipile account ID
+   * @param {string} userId - User ID or public identifier
+   * @returns {Promise<Object>} Full profile with all available fields
+   *
+   * @example
+   * const profile = await users.getFullProfile('acc_123', 'john-doe-12345');
+   * console.log(profile.skills); // [{ name: 'JavaScript', endorsements: 45 }, ...]
+   * console.log(profile.is_open_to_work); // true/false
    */
   async getFullProfile(accountId, userId) {
     const url = `${this.provider.getBaseUrl()}/users/${userId}?account_id=${accountId}&linkedin_sections=*`;
+    return this.provider.request({ method: 'GET', url, timeout: 30000 });
+  }
+
+  /**
+   * Get user profile by public identifier (vanity URL)
+   * @param {string} accountId - Unipile account ID
+   * @param {string} publicIdentifier - LinkedIn vanity URL (e.g., 'john-doe-12345')
+   * @returns {Promise<Object>}
+   */
+  async getByPublicIdentifier(accountId, publicIdentifier) {
+    const url = `${this.provider.getBaseUrl()}/users/${encodeURIComponent(publicIdentifier)}?account_id=${accountId}`;
     return this.provider.request({ method: 'GET', url, timeout: 30000 });
   }
 
@@ -343,11 +390,58 @@ class UnipileLinkedInManager {
   }
 
   /**
-   * Advanced LinkedIn search
+   * Advanced LinkedIn search with full filter support
    * @param {Object} params
    * @param {string} params.account_id - Account ID (required)
-   * @param {Object} [params...] - Search parameters (api, category, keywords, etc.)
+   * @param {string} [params.api='classic'] - API to use: 'classic', 'sales_navigator', 'recruiter'
+   * @param {string} [params.category='people'] - Category: 'people', 'companies', 'jobs', 'posts'
+   * @param {string} [params.keywords] - Search keywords
+   * @param {string} [params.first_name] - First name filter
+   * @param {string} [params.last_name] - Last name filter
+   * @param {string|string[]} [params.location] - Location filter (ID or array)
+   * @param {string|string[]} [params.industry] - Industry filter
+   * @param {string|string[]} [params.job_title] - Job title filter
+   * @param {string|string[]} [params.companies] - Current company filter
+   * @param {string|string[]} [params.past_companies] - Past companies filter
+   * @param {string|string[]} [params.school] - School/university filter
+   * @param {string|string[]} [params.skills] - Skills filter
+   * @param {number|number[]} [params.network_distance] - Network distance: 1, 2, 3 or array [1,2]
+   * @param {string} [params.tenure] - Years at current company
+   * @param {string} [params.years_experience] - Total years of experience
+   * @param {string} [params.profile_language] - Profile language filter
+   * @param {string} [params.url] - Direct LinkedIn search URL (bypasses other filters)
+   * @param {number} [params.limit=25] - Max results
+   * @param {string} [params.cursor] - Pagination cursor
    * @returns {Promise<Object>}
+   *
+   * @example
+   * // Basic search
+   * await linkedin.search({
+   *   account_id: 'acc_123',
+   *   keywords: 'software engineer',
+   *   location: ['103644278'] // São Paulo
+   * });
+   *
+   * @example
+   * // Advanced search with new filters
+   * await linkedin.search({
+   *   account_id: 'acc_123',
+   *   api: 'classic',
+   *   category: 'people',
+   *   first_name: 'John',
+   *   job_title: ['CEO', 'CTO'],
+   *   skills: ['JavaScript', 'React'],
+   *   network_distance: [1, 2],
+   *   tenure: '1-2',
+   *   years_experience: '5-10'
+   * });
+   *
+   * @example
+   * // Search using LinkedIn URL directly
+   * await linkedin.search({
+   *   account_id: 'acc_123',
+   *   url: 'https://www.linkedin.com/search/results/people/?keywords=developer&origin=GLOBAL_SEARCH_HEADER'
+   * });
    */
   async search(params) {
     const { account_id, ...bodyParams } = params;
@@ -358,11 +452,32 @@ class UnipileLinkedInManager {
 
     const url = `${this.provider.getBaseUrl()}/linkedin/search?account_id=${account_id}`;
 
-    // Clean empty parameters
+    // If URL is provided, use it directly
+    if (bodyParams.url) {
+      return this.provider.request({
+        method: 'POST',
+        url,
+        data: { url: bodyParams.url },
+        timeout: 60000
+      });
+    }
+
+    // Clean empty parameters and normalize arrays
     const cleanBody = {};
     Object.entries(bodyParams).forEach(([key, value]) => {
       if (value !== '' && value !== undefined && value !== null) {
-        if (Array.isArray(value) && value.length > 0) {
+        // Fields that should always be arrays
+        const arrayFields = [
+          'location', 'industry', 'job_title', 'companies',
+          'past_companies', 'school', 'skills', 'network_distance'
+        ];
+
+        if (arrayFields.includes(key)) {
+          const arrayValue = Array.isArray(value) ? value : [value];
+          if (arrayValue.length > 0) {
+            cleanBody[key] = arrayValue;
+          }
+        } else if (Array.isArray(value) && value.length > 0) {
           cleanBody[key] = value;
         } else if (!Array.isArray(value)) {
           cleanBody[key] = value;
@@ -370,11 +485,250 @@ class UnipileLinkedInManager {
       }
     });
 
+    // Set defaults if not provided
+    if (!cleanBody.api) cleanBody.api = 'classic';
+    if (!cleanBody.category) cleanBody.category = 'people';
+
     return this.provider.request({
       method: 'POST',
       url,
       data: cleanBody,
-      timeout: 30000
+      timeout: 60000
+    });
+  }
+
+  /**
+   * Search by direct LinkedIn URL
+   * @param {Object} params
+   * @param {string} params.account_id - Account ID (required)
+   * @param {string} params.url - LinkedIn search URL (required)
+   * @returns {Promise<Object>}
+   */
+  async searchByUrl(params) {
+    const { account_id, url: linkedinUrl } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required');
+    }
+
+    if (!linkedinUrl) {
+      throw new Error('url is required');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/search?account_id=${account_id}`;
+
+    return this.provider.request({
+      method: 'POST',
+      url,
+      data: { url: linkedinUrl },
+      timeout: 60000
+    });
+  }
+}
+
+/**
+ * Search parameters for LinkedIn autocomplete (locations, industries, job titles, companies)
+ */
+class UnipileSearchParamsManager {
+  constructor(provider) {
+    this.provider = provider;
+  }
+
+  /**
+   * Search for locations (cities, regions, countries)
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.keywords - Search query (required)
+   * @param {number} [params.limit=20] - Max results
+   * @returns {Promise<Object>}
+   */
+  async locations(params) {
+    const { account_id, keywords, limit = 20 } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required for location search');
+    }
+
+    if (!keywords) {
+      throw new Error('keywords is required for location search');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/search/parameters`;
+
+    return this.provider.request({
+      method: 'GET',
+      url,
+      params: {
+        account_id,
+        type: 'LOCATION',
+        keywords,
+        limit
+      }
+    });
+  }
+
+  /**
+   * Search for industries/sectors
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.keywords - Search query (required)
+   * @param {number} [params.limit=20] - Max results
+   * @returns {Promise<Object>}
+   */
+  async industries(params) {
+    const { account_id, keywords, limit = 20 } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required for industry search');
+    }
+
+    if (!keywords) {
+      throw new Error('keywords is required for industry search');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/search/parameters`;
+
+    return this.provider.request({
+      method: 'GET',
+      url,
+      params: {
+        account_id,
+        type: 'INDUSTRY',
+        keywords,
+        limit
+      }
+    });
+  }
+
+  /**
+   * Search for job titles
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.keywords - Search query (required)
+   * @param {number} [params.limit=20] - Max results
+   * @returns {Promise<Object>}
+   */
+  async jobTitles(params) {
+    const { account_id, keywords, limit = 20 } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required for job title search');
+    }
+
+    if (!keywords) {
+      throw new Error('keywords is required for job title search');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/search/parameters`;
+
+    return this.provider.request({
+      method: 'GET',
+      url,
+      params: {
+        account_id,
+        type: 'JOB_TITLE',
+        keywords,
+        limit
+      }
+    });
+  }
+
+  /**
+   * Search for companies
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.keywords - Search query (required)
+   * @param {number} [params.limit=20] - Max results
+   * @returns {Promise<Object>}
+   */
+  async companies(params) {
+    const { account_id, keywords, limit = 20 } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required for company search');
+    }
+
+    if (!keywords) {
+      throw new Error('keywords is required for company search');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/search/parameters`;
+
+    return this.provider.request({
+      method: 'GET',
+      url,
+      params: {
+        account_id,
+        type: 'COMPANY',
+        keywords,
+        limit
+      }
+    });
+  }
+
+  /**
+   * Search for skills
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.keywords - Search query (required)
+   * @param {number} [params.limit=20] - Max results
+   * @returns {Promise<Object>}
+   */
+  async skills(params) {
+    const { account_id, keywords, limit = 20 } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required for skills search');
+    }
+
+    if (!keywords) {
+      throw new Error('keywords is required for skills search');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/search/parameters`;
+
+    return this.provider.request({
+      method: 'GET',
+      url,
+      params: {
+        account_id,
+        type: 'SKILL',
+        keywords,
+        limit
+      }
+    });
+  }
+
+  /**
+   * Search for schools/universities
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.keywords - Search query (required)
+   * @param {number} [params.limit=20] - Max results
+   * @returns {Promise<Object>}
+   */
+  async schools(params) {
+    const { account_id, keywords, limit = 20 } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required for schools search');
+    }
+
+    if (!keywords) {
+      throw new Error('keywords is required for schools search');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/search/parameters`;
+
+    return this.provider.request({
+      method: 'GET',
+      url,
+      params: {
+        account_id,
+        type: 'SCHOOL',
+        keywords,
+        limit
+      }
     });
   }
 }

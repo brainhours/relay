@@ -1,8 +1,8 @@
 /**
- * @relay/core - Unified messaging integrations for Node.js
+ * @guilhermegoulart1/relay-core - Unified messaging integrations for Node.js
  *
  * @example
- * const { UnipileProvider, parseWebhook, EventTypes } = require('@relay/core');
+ * const { UnipileProvider, parseWebhook, EventTypes } = require('@guilhermegoulart1/relay-core');
  *
  * // Initialize provider
  * const unipile = new UnipileProvider({
@@ -37,6 +37,16 @@ const {
   parseWebhook,
   validateWebhookSignature
 } = require('./providers');
+
+// Unipile sub-modules (v1.3.0+)
+const {
+  UnipilePostsManager,
+  UnipileReactionsManager,
+  UnipileCommentsManager,
+  UnipileCompanyManager,
+  UnipileJobsManager,
+  REACTION_TYPES
+} = require('./providers/unipile');
 
 // Events
 const {
@@ -76,6 +86,14 @@ module.exports = {
   createProvider,
   parseWebhook,
   validateWebhookSignature,
+
+  // Unipile managers (v1.3.0+)
+  UnipilePostsManager,
+  UnipileReactionsManager,
+  UnipileCommentsManager,
+  UnipileCompanyManager,
+  UnipileJobsManager,
+  REACTION_TYPES,
 
   // Events
   EventTypes,
