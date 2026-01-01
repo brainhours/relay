@@ -1,6 +1,6 @@
 /**
  * Unipile Jobs Manager
- * Handles LinkedIn job operations: search, get details
+ * Handles LinkedIn job operations: search, get details, create, publish, delete
  *
  * @see https://developer.unipile.com/reference
  */
@@ -98,6 +98,135 @@ class UnipileJobsManager {
 
     return this.provider.request({
       method: 'GET',
+      url,
+      timeout: 30000
+    });
+  }
+
+  /**
+   * Create a job posting draft
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {Object} params.job_title - Job title { text: string }
+   * @param {Object} params.company - Company { text: string }
+   * @param {string} params.description - Job description (plain text)
+   * @param {string} params.location - Location ID
+   * @param {string} [params.employment_status='FULL_TIME'] - FULL_TIME, PART_TIME, CONTRACT, etc.
+   * @param {string} [params.workplace='HYBRID'] - HYBRID, REMOTE, ON_SITE
+   * @param {string[]} [params.skills] - Array of skills
+   * @param {Object[]} [params.screening_questions] - Screening questions
+   * @param {string} [params.auto_rejection_template] - Auto rejection template
+   * @param {Object} [params.recruiter] - Recruiter configuration
+   * @returns {Promise<Object>} Returns { job_id, ... }
+   */
+  async create(params) {
+    const {
+      account_id,
+      job_title,
+      company,
+      description,
+      location,
+      employment_status = 'FULL_TIME',
+      workplace = 'HYBRID',
+      skills,
+      screening_questions,
+      auto_rejection_template,
+      recruiter
+    } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required');
+    }
+    if (!job_title) {
+      throw new Error('job_title is required');
+    }
+    if (!description) {
+      throw new Error('description is required');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/jobs?account_id=${account_id}`;
+
+    const body = {
+      job_title,
+      company,
+      description,
+      location,
+      employment_status,
+      workplace
+    };
+
+    if (skills && skills.length > 0) body.skills = skills;
+    if (screening_questions && screening_questions.length > 0) body.screening_questions = screening_questions;
+    if (auto_rejection_template) body.auto_rejection_template = auto_rejection_template;
+    if (recruiter) body.recruiter = recruiter;
+
+    return this.provider.request({
+      method: 'POST',
+      url,
+      data: body,
+      timeout: 30000
+    });
+  }
+
+  /**
+   * Publish a job draft to LinkedIn
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.job_id - Draft job ID (required)
+   * @param {string} [params.mode='FREE'] - FREE, PROMOTED
+   * @param {string} [params.service='CLASSIC'] - CLASSIC
+   * @param {boolean} [params.hiring_photo_frame=false] - Show hiring frame on profile
+   * @param {boolean} [params.bypass_email_verification=false] - Bypass email verification
+   * @returns {Promise<Object>}
+   */
+  async publish(params) {
+    const {
+      account_id,
+      job_id,
+      mode = 'FREE',
+      service = 'CLASSIC',
+      hiring_photo_frame = false,
+      bypass_email_verification = false
+    } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required');
+    }
+    if (!job_id) {
+      throw new Error('job_id is required');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/jobs/${job_id}/publish?account_id=${account_id}`;
+
+    return this.provider.request({
+      method: 'POST',
+      url,
+      data: { mode, service, hiring_photo_frame, bypass_email_verification },
+      timeout: 30000
+    });
+  }
+
+  /**
+   * Delete a job posting
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.job_id - Job ID (required)
+   * @returns {Promise<Object>}
+   */
+  async delete(params) {
+    const { account_id, job_id } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required');
+    }
+    if (!job_id) {
+      throw new Error('job_id is required');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/jobs/${job_id}?account_id=${account_id}`;
+
+    return this.provider.request({
+      method: 'DELETE',
       url,
       timeout: 30000
     });
