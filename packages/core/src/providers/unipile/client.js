@@ -328,6 +328,209 @@ class UnipileUserManager {
       timeout: 30000
     });
   }
+
+  /**
+   * List all pending sent invitations
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {number} [params.limit] - Max results
+   * @param {string} [params.cursor] - Pagination cursor
+   * @returns {Promise<Object>} List of sent invitations that are pending
+   *
+   * @example
+   * const invites = await users.listSentInvitations({ account_id: 'acc_123' });
+   * console.log(invites.items); // [{ id, provider_id, name, headline, ... }]
+   */
+  async listSentInvitations(params) {
+    const { account_id, limit, cursor } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required for listing sent invitations');
+    }
+
+    let url = `${this.provider.getBaseUrl()}/users/invite/sent?account_id=${account_id}`;
+
+    if (limit) url += `&limit=${limit}`;
+    if (cursor) url += `&cursor=${cursor}`;
+
+    return this.provider.request({
+      method: 'GET',
+      url,
+      timeout: 30000
+    });
+  }
+
+  /**
+   * List all received invitations (pending connection requests)
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {number} [params.limit] - Max results
+   * @param {string} [params.cursor] - Pagination cursor
+   * @returns {Promise<Object>} List of received invitations
+   *
+   * @example
+   * const invites = await users.listReceivedInvitations({ account_id: 'acc_123' });
+   * console.log(invites.items); // [{ id, provider_id, name, headline, message, ... }]
+   */
+  async listReceivedInvitations(params) {
+    const { account_id, limit, cursor } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required for listing received invitations');
+    }
+
+    let url = `${this.provider.getBaseUrl()}/users/invite/received?account_id=${account_id}`;
+
+    if (limit) url += `&limit=${limit}`;
+    if (cursor) url += `&cursor=${cursor}`;
+
+    return this.provider.request({
+      method: 'GET',
+      url,
+      timeout: 30000
+    });
+  }
+
+  /**
+   * Accept or reject a received invitation
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.invitation_id - Invitation ID (required)
+   * @param {string} params.action - Action to perform: 'accept' or 'decline' (required)
+   * @param {string} params.provider - Provider type: 'LINKEDIN' or 'INSTAGRAM' (required for LinkedIn)
+   * @param {string} params.shared_secret - Shared secret token from invitation (required for LinkedIn)
+   * @returns {Promise<Object>}
+   *
+   * @example
+   * // Accept LinkedIn invitation
+   * await users.handleReceivedInvitation({
+   *   account_id: 'acc_123',
+   *   invitation_id: 'inv_456',
+   *   action: 'accept',
+   *   provider: 'LINKEDIN',
+   *   shared_secret: 'token_from_invitation'
+   * });
+   *
+   * @example
+   * // Decline LinkedIn invitation
+   * await users.handleReceivedInvitation({
+   *   account_id: 'acc_123',
+   *   invitation_id: 'inv_456',
+   *   action: 'decline',
+   *   provider: 'LINKEDIN',
+   *   shared_secret: 'token_from_invitation'
+   * });
+   */
+  async handleReceivedInvitation(params) {
+    const { account_id, invitation_id, action, provider, shared_secret } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required');
+    }
+
+    if (!invitation_id) {
+      throw new Error('invitation_id is required');
+    }
+
+    if (!action || !['accept', 'decline', 'reject'].includes(action)) {
+      throw new Error('action must be either "accept" or "decline"');
+    }
+
+    // LinkedIn requires provider and shared_secret
+    if (provider === 'LINKEDIN' && !shared_secret) {
+      throw new Error('shared_secret is required for LinkedIn invitations');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/users/invite/received/${invitation_id}`;
+
+    // Map 'reject' to 'decline' for API compatibility
+    const apiAction = action === 'reject' ? 'decline' : action;
+
+    // Build request body according to Unipile API spec
+    const data = {
+      account_id,
+      action: apiAction
+    };
+
+    // Add provider-specific fields
+    if (provider) {
+      data.provider = provider;
+    }
+    if (shared_secret) {
+      data.shared_secret = shared_secret;
+    }
+
+    return this.provider.request({
+      method: 'POST',
+      url,
+      data,
+      timeout: 30000
+    });
+  }
+
+  /**
+   * Cancel/withdraw a sent invitation that is still pending
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.invitation_id - Invitation ID (required)
+   * @returns {Promise<Object>}
+   *
+   * @example
+   * await users.cancelInvitation({
+   *   account_id: 'acc_123',
+   *   invitation_id: 'inv_456'
+   * });
+   */
+  async cancelInvitation(params) {
+    const { account_id, invitation_id } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required');
+    }
+
+    if (!invitation_id) {
+      throw new Error('invitation_id is required');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/users/invite/sent/${invitation_id}?account_id=${account_id}`;
+
+    return this.provider.request({
+      method: 'DELETE',
+      url,
+      timeout: 30000
+    });
+  }
+
+  /**
+   * List all relations (1st degree connections) for an account
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {number} [params.limit=100] - Max results per page (1-250)
+   * @param {string} [params.cursor] - Pagination cursor
+   * @returns {Promise<Object>} { items: [...], cursor: string|null }
+   *
+   * @example
+   * const relations = await users.getRelations({ account_id: 'acc_123', limit: 250 });
+   * console.log(relations.items); // [{ provider_id, name, public_identifier, ... }]
+   */
+  async getRelations(params) {
+    const { account_id, limit = 100, cursor } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required for listing relations');
+    }
+
+    let url = `${this.provider.getBaseUrl()}/users/relations?account_id=${account_id}`;
+
+    if (limit) url += `&limit=${limit}`;
+    if (cursor) url += `&cursor=${cursor}`;
+
+    return this.provider.request({
+      method: 'GET',
+      url,
+      timeout: 30000
+    });
+  }
 }
 
 /**
