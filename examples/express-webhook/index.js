@@ -1,5 +1,5 @@
 /**
- * Example: Express Webhook Handler with @relay/core
+ * Example: Express Webhook Handler with @guilhermegoulart1/relay-core
  *
  * This example shows how to:
  * 1. Initialize the Unipile provider
@@ -8,13 +8,14 @@
  * 4. Use the event emitter pattern
  */
 
+require('dotenv').config();
 const express = require('express');
 const {
   UnipileProvider,
   parseWebhook,
   EventTypes,
   MessagingEventEmitter
-} = require('@relay/core');
+} = require('@guilhermegoulart1/relay-core');
 
 // Initialize Express
 const app = express();

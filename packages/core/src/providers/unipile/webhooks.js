@@ -73,10 +73,26 @@ function parseUnipileWebhook(rawPayload) {
   const chatId = payload.chat_id || payload.chatId || payload.chat?.id;
   const messageId = payload.message_id || payload.messageId || payload.id;
 
-  // Extract sender info
+  // Extract sender info - LinkedIn envia em varios campos possiveis
   const sender = payload.sender || payload.from || payload.attendee || {};
-  const senderId = sender.id || sender.provider_id || payload.sender_id;
-  const senderName = sender.name || sender.display_name || sender.first_name;
+  const senderId = sender.id || sender.provider_id || sender.attendee_provider_id || payload.sender_id;
+
+  // Extrair nome do remetente - priorizar campos mais completos
+  // LinkedIn pode enviar: attendee_name, display_name, name, first_name + last_name
+  let senderName = sender.attendee_name
+    || sender.display_name
+    || sender.name
+    || sender.full_name;
+
+  // Se nao tem nome completo, tentar combinar first_name + last_name
+  if (!senderName && (sender.first_name || sender.last_name)) {
+    senderName = [sender.first_name, sender.last_name].filter(Boolean).join(' ').trim();
+  }
+
+  // Fallback para pushname (WhatsApp)
+  if (!senderName) {
+    senderName = sender.pushname;
+  }
 
   // Extract content
   const content = payload.text || payload.content || payload.body || payload.message;
@@ -91,16 +107,23 @@ function parseUnipileWebhook(rawPayload) {
   const providerType = payload.provider || payload.provider_type ||
     payload.account?.provider || payload.channel_type;
 
+  // Determinar direcao da mensagem (inbound = recebida do lead, outbound = enviada pelo usuario)
+  // MessageReceived = inbound (lead enviou), MessageSent = outbound (usuario enviou)
+  const direction = originalEventKey === 'MessageSent' ? 'outbound' : 'inbound';
+
   // Build metadata with provider-specific data
   const metadata = {
     originalEventKey,
+    direction,
     messageType: payload.message_type,
     isGroup: payload.is_group || false,
     replyTo: payload.reply_to || payload.in_reply_to,
     reactions: payload.reactions,
     editedAt: payload.edited_at,
     deliveredAt: payload.delivered_at,
-    readAt: payload.read_at
+    readAt: payload.read_at,
+    // Dados adicionais do sender para LinkedIn
+    senderProviderId: sender.attendee_provider_id || sender.provider_id || senderId
   };
 
   // Add relation-specific data
