@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-02-11
+
+### Fixed
+
+- **messaging.send** - Fixed Unipile API endpoint for starting new chats
+  - Changed from `POST /messaging/send` (404) to `POST /chats` (correct Unipile endpoint)
+  - Moved `account_id` from query string to request body (required by Unipile API)
+  - Body now sends `{ account_id, attendees_ids: [user_id], text }`
+
+## [1.6.1] - 2026-01-15
+
+### Fixed
+
+- **handleReceivedInvitation** - Fixed Unipile API integration for accepting/declining LinkedIn invitations
+  - Now correctly sends `provider`, `shared_secret`, and `account_id` in request body (required by Unipile API)
+  - Added support for `provider` and `shared_secret` parameters
+  - Maps 'reject' to 'decline' for API compatibility
+
+## [1.6.0] - 2026-01-11
+
+### Added
+
+- **Extended UnipileUserManager** - LinkedIn invitation management
+  - `listSentInvitations(params)` - List all pending sent invitations
+  - `listReceivedInvitations(params)` - List all received invitations (pending connection requests)
+  - `handleReceivedInvitation(params)` - Accept or decline a received invitation
+  - `cancelInvitation(params)` - Cancel/withdraw a sent invitation that is still pending
+
+### Notes
+
+- All invitation methods require `account_id` parameter
+- `handleReceivedInvitation` accepts `action: 'accept' | 'decline'` and requires `provider` and `shared_secret` for LinkedIn
+- Uses Unipile's `/users/invite/sent` and `/users/invite/received` endpoints
+
 ## [1.4.0] - 2026-01-01
 
 ### Added

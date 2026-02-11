@@ -959,12 +959,13 @@ class UnipileMessagingManager {
       throw new Error('account_id, user_id, and text are required');
     }
 
-    const url = `${this.provider.getBaseUrl()}/messaging/send?account_id=${account_id}`;
+    const url = `${this.provider.getBaseUrl()}/chats`;
 
     return this.provider.request({
       method: 'POST',
       url,
       data: {
+        account_id,
         attendees_ids: [user_id],
         text
       }
