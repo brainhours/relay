@@ -104,8 +104,10 @@ function parseUnipileWebhook(rawPayload) {
   const attachments = normalizeAttachments(payload.attachments || []);
 
   // Extract provider type (LINKEDIN, WHATSAPP, etc.)
-  const providerType = payload.provider || payload.provider_type ||
+  // Normalizar para UPPERCASE para consistência com ProviderTypes
+  const rawProviderType = payload.provider || payload.provider_type ||
     payload.account?.provider || payload.channel_type;
+  const providerType = rawProviderType ? rawProviderType.toUpperCase() : undefined;
 
   // Determinar direcao da mensagem (inbound = recebida do lead, outbound = enviada pelo usuario)
   // MessageReceived = inbound (lead enviou), MessageSent = outbound (usuario enviou)
