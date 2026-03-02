@@ -1213,6 +1213,10 @@ class UnipileMessagingManager {
     const connectionParams = accountData?.connection_params?.im || {};
     const ownIdentifier = connectionParams.phone_number || connectionParams.phone || accountData.name;
 
+    // Normalize phone numbers for comparison: strip all non-digits
+    const normalizePhone = (s) => (s || '').replace(/\D/g, '');
+    const normOwnId = normalizePhone(ownIdentifier);
+
     // Get chats to find own attendee
     const chatsData = await this.getChats({ account_id: accountId, limit: 10 });
     const chats = chatsData.items || chatsData || [];
@@ -1227,18 +1231,33 @@ class UnipileMessagingManager {
 
       for (const attendee of attendees) {
         const attendeeId = attendee.id || attendee.identifier || '';
-        const attendeeName = attendee.name || attendee.display_name || '';
         const attendeePhone = attendee.phone_number || attendee.identifier || '';
+        const normAttId = normalizePhone(attendeeId);
+        const normAttPhone = normalizePhone(attendeePhone);
 
-        if (attendee.is_self === true ||
-            attendeeId.includes(ownIdentifier) ||
-            attendeePhone.includes(ownIdentifier) ||
-            (ownIdentifier && attendeeName === ownIdentifier)) {
+        const isMatch =
+          attendee.is_self === true ||
+          (normOwnId && normAttId.includes(normOwnId)) ||
+          (normOwnId && normAttPhone.includes(normOwnId)) ||
+          (normOwnId && normOwnId.includes(normAttPhone) && normAttPhone.length > 7);
+
+        if (isMatch) {
+          // Try to fetch binary profile picture for reliable photo retrieval
+          let profilePictureBinary = null;
+          if (attendee.id) {
+            try {
+              profilePictureBinary = await this.getAttendeePicture(attendee.id);
+            } catch (e) {
+              // Silent - binary fetch is best-effort
+            }
+          }
 
           return {
             name: attendee.name || attendee.display_name || attendee.pushname,
             profile_picture: attendee.profile_picture || attendee.profile_picture_url || attendee.picture_url,
+            profile_picture_binary: profilePictureBinary,
             phone_number: attendee.phone_number || attendee.identifier || ownIdentifier,
+            attendee_id: attendee.id,
             id: attendee.id,
             is_self: true
           };
