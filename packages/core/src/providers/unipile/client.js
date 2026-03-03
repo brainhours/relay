@@ -1260,18 +1260,19 @@ class UnipileMessagingManager {
 
     const findOwnInAttendees = (attendees) => {
       for (const attendee of (attendees || [])) {
-        const attendeeId = attendee.id || attendee.identifier || '';
-        const attendeePhone = attendee.phone_number || attendee.identifier || '';
-        const normAttId = normalizePhone(attendeeId);
+        // is_self comes as integer (0/1) from Unipile, not boolean — use truthy check
+        if (attendee.is_self) return attendee;
+
+        const attendeePhone = attendee.phone_number || attendee.specifics?.phone_number || attendee.identifier || '';
+        const attendeePubId = attendee.public_identifier || '';
         const normAttPhone = normalizePhone(attendeePhone);
+        const normAttPubId = normalizePhone(attendeePubId);
 
-        const isMatch =
-          attendee.is_self === true ||
-          (normOwnId && normAttId.includes(normOwnId)) ||
-          (normOwnId && normAttPhone.includes(normOwnId)) ||
-          (normOwnId && normOwnId.includes(normAttPhone) && normAttPhone.length > 7);
-
-        if (isMatch) return attendee;
+        if (normOwnId && (
+          normAttPhone.includes(normOwnId) ||
+          normAttPubId.includes(normOwnId) ||
+          (normAttPhone.length > 7 && normOwnId.includes(normAttPhone))
+        )) return attendee;
       }
       return null;
     };
@@ -1316,10 +1317,10 @@ class UnipileMessagingManager {
       }
     }
     return {
-      name: attendee.name || attendee.display_name || attendee.pushname,
+      name: attendee.name || attendee.display_name || attendee.pushname || attendee.specifics?.display_name,
       profile_picture: attendee.profile_picture || attendee.profile_picture_url || attendee.picture_url,
       profile_picture_binary: profilePictureBinary,
-      phone_number: attendee.phone_number || attendee.identifier || ownIdentifier,
+      phone_number: attendee.phone_number || attendee.specifics?.phone_number || attendee.identifier || ownIdentifier,
       attendee_id: attendee.id,
       id: attendee.id,
       is_self: true
