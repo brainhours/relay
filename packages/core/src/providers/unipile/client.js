@@ -1145,6 +1145,32 @@ class UnipileMessagingManager {
   }
 
   /**
+   * Get attendees for a specific chat
+   * Unipile does not include attendees in /chats or /chats/{id} responses —
+   * they must be fetched via this dedicated endpoint.
+   * @param {Object} params
+   * @param {string} params.account_id
+   * @param {string} params.chat_id
+   * @returns {Promise<Array>}
+   */
+  async getChatAttendees(params) {
+    const { account_id, chat_id } = params;
+
+    if (!account_id || !chat_id) {
+      throw new Error('account_id and chat_id are required');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/chats/${chat_id}/attendees?account_id=${account_id}`;
+    try {
+      const result = await this.provider.request({ method: 'GET', url });
+      return result?.items || result || [];
+    } catch (e) {
+      if (e.response?.status === 404) return [];
+      throw e;
+    }
+  }
+
+  /**
    * Get attendee details by ID
    * @param {string} attendeeId
    * @returns {Promise<Object|null>}
@@ -1259,17 +1285,17 @@ class UnipileMessagingManager {
       }
     }
 
-    // Pass 2: attendees may not be in list — fetch first few chats individually
-    console.log(`[getOwnProfileFromChats] No attendees in list response, trying individual chat fetch...`);
+    // Pass 2: fetch attendees via dedicated /chats/{id}/attendees endpoint
+    console.log(`[getOwnProfileFromChats] No attendees in list response, fetching via /chats/{id}/attendees...`);
     for (const chat of chats.slice(0, 5)) {
       const chatId = chat.id || chat.chat_id;
       if (!chatId) continue;
       try {
-        const chatDetail = await this.getChat({ account_id: accountId, chat_id: chatId });
-        console.log(`[getOwnProfileFromChats] chat ${chatId} attendees: ${JSON.stringify(chatDetail?.attendees?.slice?.(0, 2))}`);
-        const found = findOwnInAttendees(chatDetail?.attendees);
+        const attendees = await this.getChatAttendees({ account_id: accountId, chat_id: chatId });
+        console.log(`[getOwnProfileFromChats] chat ${chatId} attendees count: ${attendees.length}, sample: ${JSON.stringify(attendees.slice(0, 2))}`);
+        const found = findOwnInAttendees(attendees);
         if (found) {
-          console.log(`[getOwnProfileFromChats] Found own attendee in individual chat fetch`);
+          console.log(`[getOwnProfileFromChats] Found own attendee via /chats/${chatId}/attendees`);
           return await this._buildOwnProfileResult(found, ownIdentifier);
         }
       } catch (e) {

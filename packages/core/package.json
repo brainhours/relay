@@ -1,6 +1,6 @@
 {
   "name": "@guilhermegoulart1/relay-core",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "description": "Core messaging integrations - Unipile, Twilio, Uazapi and more",
   "main": "src/index.js",
   "types": "src/index.d.ts",
