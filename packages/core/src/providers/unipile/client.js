@@ -1221,15 +1221,19 @@ class UnipileMessagingManager {
     const chatsData = await this.getChats({ account_id: accountId, limit: 10 });
     const chats = chatsData.items || chatsData || [];
 
+    console.log(`[getOwnProfileFromChats] accountId=${accountId} ownIdentifier=${ownIdentifier} chats=${chats.length}`);
+
     if (chats.length === 0) {
       return null;
     }
 
-    // Look for own attendee in chats
-    for (const chat of chats) {
-      const attendees = chat.attendees || [];
+    // Log first chat structure to diagnose attendees field
+    const firstChat = chats[0];
+    console.log(`[getOwnProfileFromChats] firstChat keys: ${Object.keys(firstChat).join(', ')}`);
+    console.log(`[getOwnProfileFromChats] firstChat.attendees: ${JSON.stringify(firstChat.attendees?.slice?.(0, 2) ?? firstChat.attendees ?? 'MISSING')}`);
 
-      for (const attendee of attendees) {
+    const findOwnInAttendees = (attendees) => {
+      for (const attendee of (attendees || [])) {
         const attendeeId = attendee.id || attendee.identifier || '';
         const attendeePhone = attendee.phone_number || attendee.identifier || '';
         const normAttId = normalizePhone(attendeeId);
@@ -1241,31 +1245,59 @@ class UnipileMessagingManager {
           (normOwnId && normAttPhone.includes(normOwnId)) ||
           (normOwnId && normOwnId.includes(normAttPhone) && normAttPhone.length > 7);
 
-        if (isMatch) {
-          // Try to fetch binary profile picture for reliable photo retrieval
-          let profilePictureBinary = null;
-          if (attendee.id) {
-            try {
-              profilePictureBinary = await this.getAttendeePicture(attendee.id);
-            } catch (e) {
-              // Silent - binary fetch is best-effort
-            }
-          }
+        if (isMatch) return attendee;
+      }
+      return null;
+    };
 
-          return {
-            name: attendee.name || attendee.display_name || attendee.pushname,
-            profile_picture: attendee.profile_picture || attendee.profile_picture_url || attendee.picture_url,
-            profile_picture_binary: profilePictureBinary,
-            phone_number: attendee.phone_number || attendee.identifier || ownIdentifier,
-            attendee_id: attendee.id,
-            id: attendee.id,
-            is_self: true
-          };
+    // Pass 1: search attendees from chat list response
+    for (const chat of chats) {
+      const found = findOwnInAttendees(chat.attendees);
+      if (found) {
+        console.log(`[getOwnProfileFromChats] Found own attendee in chat list (is_self=${found.is_self})`);
+        return await this._buildOwnProfileResult(found, ownIdentifier);
+      }
+    }
+
+    // Pass 2: attendees may not be in list — fetch first few chats individually
+    console.log(`[getOwnProfileFromChats] No attendees in list response, trying individual chat fetch...`);
+    for (const chat of chats.slice(0, 5)) {
+      const chatId = chat.id || chat.chat_id;
+      if (!chatId) continue;
+      try {
+        const chatDetail = await this.getChat({ account_id: accountId, chat_id: chatId });
+        console.log(`[getOwnProfileFromChats] chat ${chatId} attendees: ${JSON.stringify(chatDetail?.attendees?.slice?.(0, 2))}`);
+        const found = findOwnInAttendees(chatDetail?.attendees);
+        if (found) {
+          console.log(`[getOwnProfileFromChats] Found own attendee in individual chat fetch`);
+          return await this._buildOwnProfileResult(found, ownIdentifier);
         }
+      } catch (e) {
+        // Try next chat
       }
     }
 
     return null;
+  }
+
+  async _buildOwnProfileResult(attendee, ownIdentifier) {
+    let profilePictureBinary = null;
+    if (attendee.id) {
+      try {
+        profilePictureBinary = await this.getAttendeePicture(attendee.id);
+      } catch (e) {
+        // Silent - binary fetch is best-effort
+      }
+    }
+    return {
+      name: attendee.name || attendee.display_name || attendee.pushname,
+      profile_picture: attendee.profile_picture || attendee.profile_picture_url || attendee.picture_url,
+      profile_picture_binary: profilePictureBinary,
+      phone_number: attendee.phone_number || attendee.identifier || ownIdentifier,
+      attendee_id: attendee.id,
+      id: attendee.id,
+      is_self: true
+    };
   }
 }
 
