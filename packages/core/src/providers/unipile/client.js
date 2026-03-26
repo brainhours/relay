@@ -604,8 +604,8 @@ class UnipileLinkedInManager {
    * @param {string|string[]} [params.location] - Location filter (ID or array)
    * @param {string|string[]} [params.industry] - Industry filter
    * @param {string|string[]} [params.job_title] - Job title filter
-   * @param {string|string[]} [params.companies] - Current company filter
-   * @param {string|string[]} [params.past_companies] - Past companies filter
+   * @param {string|string[]} [params.companies] - Current company filter (IDs, auto-converted to Unipile's {include:[]} format)
+   * @param {string|string[]} [params.past_companies] - Past companies filter (IDs, auto-converted to Unipile's {include:[]} format)
    * @param {string|string[]} [params.school] - School/university filter
    * @param {string|string[]} [params.skills] - Skills filter
    * @param {number|number[]} [params.network_distance] - Network distance: 1, 2, 3 or array [1,2]
@@ -671,11 +671,19 @@ class UnipileLinkedInManager {
       if (value !== '' && value !== undefined && value !== null) {
         // Fields that should always be arrays
         const arrayFields = [
-          'location', 'industry', 'job_title', 'companies',
-          'past_companies', 'school', 'skills', 'network_distance'
+          'location', 'industry', 'job_title',
+          'school', 'skills', 'network_distance'
         ];
 
-        if (arrayFields.includes(key)) {
+        // Companies/past_companies: convert to Unipile's { include: [numericId] } format
+        if (key === 'companies' || key === 'past_companies') {
+          const arrayValue = Array.isArray(value) ? value : [value];
+          const numericIds = arrayValue.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id));
+          if (numericIds.length > 0) {
+            const uniKey = key === 'companies' ? 'company' : 'past_company';
+            cleanBody[uniKey] = { include: numericIds };
+          }
+        } else if (arrayFields.includes(key)) {
           const arrayValue = Array.isArray(value) ? value : [value];
           if (arrayValue.length > 0) {
             cleanBody[key] = arrayValue;
