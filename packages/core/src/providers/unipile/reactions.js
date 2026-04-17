@@ -51,7 +51,7 @@ class UnipileReactionsManager {
       throw new Error(`Invalid reaction_type. Must be one of: ${validTypes.join(', ')}`);
     }
 
-    const url = `${this.provider.getBaseUrl()}/posts/${post_id}/reactions?account_id=${account_id}`;
+    const url = `${this.provider.getBaseUrl()}/posts/${encodeURIComponent(post_id)}/reactions?account_id=${account_id}`;
 
     return this.provider.request({
       method: 'POST',
@@ -79,7 +79,7 @@ class UnipileReactionsManager {
       throw new Error('post_id is required');
     }
 
-    const url = `${this.provider.getBaseUrl()}/posts/${post_id}/reactions?account_id=${account_id}`;
+    const url = `${this.provider.getBaseUrl()}/posts/${encodeURIComponent(post_id)}/reactions?account_id=${account_id}`;
 
     return this.provider.request({
       method: 'DELETE',
@@ -108,7 +108,7 @@ class UnipileReactionsManager {
       throw new Error('post_id is required');
     }
 
-    let url = `${this.provider.getBaseUrl()}/posts/${post_id}/reactions?account_id=${account_id}&limit=${limit}`;
+    let url = `${this.provider.getBaseUrl()}/posts/${encodeURIComponent(post_id)}/reactions?account_id=${account_id}&limit=${limit}`;
 
     if (cursor) {
       url += `&cursor=${cursor}`;

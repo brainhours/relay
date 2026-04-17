@@ -110,7 +110,7 @@ class UnipilePostsManager {
    * @returns {Promise<Object>}
    */
   async getUserPosts(params) {
-    const { account_id, user_id, limit = 25, cursor } = params;
+    const { account_id, user_id, is_company, limit = 25, cursor } = params;
 
     if (!account_id) {
       throw new Error('account_id is required');
@@ -120,7 +120,13 @@ class UnipilePostsManager {
       throw new Error('user_id is required');
     }
 
-    let url = `${this.provider.getBaseUrl()}/users/${user_id}/posts?account_id=${account_id}&limit=${limit}`;
+    let url = `${this.provider.getBaseUrl()}/users/${user_id}/posts?account_id=${account_id}`;
+
+    if (is_company) {
+      url += '&is_company=true';
+    }
+
+    url += `&limit=${limit}`;
 
     if (cursor) {
       url += `&cursor=${cursor}`;

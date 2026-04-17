@@ -604,8 +604,8 @@ class UnipileLinkedInManager {
    * @param {string|string[]} [params.location] - Location filter (ID or array)
    * @param {string|string[]} [params.industry] - Industry filter
    * @param {string|string[]} [params.job_title] - Job title filter
-   * @param {string|string[]} [params.companies] - Current company filter (IDs, auto-converted to Unipile's {include:[]} format)
-   * @param {string|string[]} [params.past_companies] - Past companies filter (IDs, auto-converted to Unipile's {include:[]} format)
+   * @param {string|string[]} [params.companies] - Current company IDs. Emitted as `company: ["id"]` for `api:'classic'` and as `company: { include: [numericId] }` for Sales Navigator / Recruiter.
+   * @param {string|string[]} [params.past_companies] - Past company IDs. Same format rules as `companies`.
    * @param {string|string[]} [params.school] - School/university filter
    * @param {string|string[]} [params.skills] - Skills filter
    * @param {number|number[]} [params.network_distance] - Network distance: 1, 2, 3 or array [1,2]
@@ -665,6 +665,10 @@ class UnipileLinkedInManager {
       });
     }
 
+    // Determine API type up-front so we can emit the right schema for
+    // fields whose format differs between Classic and Sales Navigator.
+    const apiType = bodyParams.api || 'classic';
+
     // Clean empty parameters and normalize arrays
     const cleanBody = {};
     Object.entries(bodyParams).forEach(([key, value]) => {
@@ -675,13 +679,27 @@ class UnipileLinkedInManager {
           'school', 'skills', 'network_distance'
         ];
 
-        // Companies/past_companies: convert to Unipile's { include: [numericId] } format
+        // Companies/past_companies: format differs per API
+        //  - Classic: array of string IDs (pattern ^\d+$)
+        //  - Sales Navigator / Recruiter: { include: [numericId] }
         if (key === 'companies' || key === 'past_companies') {
           const arrayValue = Array.isArray(value) ? value : [value];
-          const numericIds = arrayValue.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id));
-          if (numericIds.length > 0) {
-            const uniKey = key === 'companies' ? 'company' : 'past_company';
-            cleanBody[uniKey] = { include: numericIds };
+          const uniKey = key === 'companies' ? 'company' : 'past_company';
+
+          if (apiType === 'classic') {
+            const stringIds = arrayValue
+              .map(id => (id === null || id === undefined) ? null : String(id).trim())
+              .filter(id => id && /^\d+$/.test(id));
+            if (stringIds.length > 0) {
+              cleanBody[uniKey] = stringIds;
+            }
+          } else {
+            const numericIds = arrayValue
+              .map(id => typeof id === 'string' ? parseInt(id, 10) : id)
+              .filter(id => typeof id === 'number' && !isNaN(id));
+            if (numericIds.length > 0) {
+              cleanBody[uniKey] = { include: numericIds };
+            }
           }
         } else if (arrayFields.includes(key)) {
           const arrayValue = Array.isArray(value) ? value : [value];

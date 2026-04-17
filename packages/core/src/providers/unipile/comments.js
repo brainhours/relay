@@ -54,7 +54,7 @@ class UnipileCommentsManager {
       throw new Error('text is required');
     }
 
-    const url = `${this.provider.getBaseUrl()}/posts/${post_id}/comments?account_id=${account_id}`;
+    const url = `${this.provider.getBaseUrl()}/posts/${encodeURIComponent(post_id)}/comments?account_id=${account_id}`;
 
     const body = { text };
 
@@ -99,7 +99,7 @@ class UnipileCommentsManager {
       throw new Error('text is required');
     }
 
-    const url = `${this.provider.getBaseUrl()}/posts/${post_id}/comments?account_id=${account_id}`;
+    const url = `${this.provider.getBaseUrl()}/posts/${encodeURIComponent(post_id)}/comments?account_id=${account_id}`;
 
     const body = {
       text,
@@ -138,7 +138,7 @@ class UnipileCommentsManager {
       throw new Error('post_id is required');
     }
 
-    let url = `${this.provider.getBaseUrl()}/posts/${post_id}/comments?account_id=${account_id}&limit=${limit}`;
+    let url = `${this.provider.getBaseUrl()}/posts/${encodeURIComponent(post_id)}/comments?account_id=${account_id}&limit=${limit}`;
 
     if (cursor) {
       url += `&cursor=${cursor}`;
@@ -174,7 +174,7 @@ class UnipileCommentsManager {
       throw new Error('comment_id is required');
     }
 
-    const url = `${this.provider.getBaseUrl()}/posts/${post_id}/comments/${comment_id}?account_id=${account_id}`;
+    const url = `${this.provider.getBaseUrl()}/posts/${encodeURIComponent(post_id)}/comments/${comment_id}?account_id=${account_id}`;
 
     return this.provider.request({
       method: 'DELETE',

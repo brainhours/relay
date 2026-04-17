@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.9] - 2026-04-17
+
+### Fixed
+
+- **linkedin.search** - Fixed `company` / `past_company` payload for Classic API.
+  - For `api: 'classic'`, filters are now emitted as an array of string IDs
+    (e.g. `company: ["1384602"]`) matching the Unipile Classic schema.
+  - For `sales_navigator` / `recruiter`, the existing `{ include: [numericId] }`
+    format is preserved.
+  - Previously, all searches used the Sales Navigator shape, which caused
+    Unipile to return `400 Invalid parameters` on Classic searches filtered
+    by company.
+- **comments / reactions** - URL-encode `post_id` in posts/comments/reactions
+  endpoints to avoid broken requests when the ID contains URL-unsafe chars.
+
+### Added
+
+- **posts.getUserPosts** - Accepts an `is_company` flag that appends
+  `is_company=true` to the request, supporting LinkedIn company-page posts.
+
 ## [1.7.1] - 2026-02-11
 
 ### Fixed
