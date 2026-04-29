@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.10] - 2026-04-29
+
+### Fixed
+
+- **unipile.account.getHostedAuthLink** - Honour the `reconnect` option to
+  reconnect an existing Unipile account instead of always creating a new one.
+  - When `options.reconnect` (a Unipile `account_id`) is provided, the request
+    now sends `type: 'reconnect'` and `reconnect_account: <id>` to Unipile.
+  - Without `options.reconnect`, behaviour is unchanged (`type: 'create'`).
+  - Previously, `options.reconnect` was silently dropped and every "reconnect"
+    flow produced a brand-new Unipile account, leaving the original disconnected
+    account orphaned.
+
 ## [1.7.9] - 2026-04-17
 
 ### Fixed

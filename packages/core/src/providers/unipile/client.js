@@ -130,6 +130,9 @@ class UnipileAccountManager {
    * @param {string} [options.failureRedirectUrl] - URL to redirect on failure
    * @param {string} [options.notifyUrl] - Webhook URL for account events
    * @param {string} [options.name] - Optional account name/identifier
+   * @param {string} [options.reconnect] - Existing Unipile account_id to reconnect.
+   *   When provided, the link reconnects that account instead of creating a new one
+   *   (sends `type: 'reconnect'` + `reconnect_account` to Unipile).
    * @returns {Promise<Object>}
    */
   async getHostedAuthLink(options = {}) {
@@ -138,8 +141,10 @@ class UnipileAccountManager {
     // Expires in 30 minutes
     const expiresDate = new Date(Date.now() + 30 * 60 * 1000);
 
+    const isReconnect = !!options.reconnect;
+
     const body = {
-      type: 'create',
+      type: isReconnect ? 'reconnect' : 'create',
       api_url: `https://${this.provider.dsn}`,
       expiresOn: expiresDate.toISOString(),
       providers: options.providers || [
@@ -150,6 +155,10 @@ class UnipileAccountManager {
       success_redirect_url: options.successRedirectUrl,
       failure_redirect_url: options.failureRedirectUrl
     };
+
+    if (isReconnect) {
+      body.reconnect_account = options.reconnect;
+    }
 
     if (options.name) {
       body.name = options.name;
