@@ -143,9 +143,16 @@ class UnipileCompanyManager {
 
   /**
    * Get company employees
+   *
+   * Internally hits POST /linkedin/search with category=people and a company
+   * filter. Requires the **numeric** LinkedIn company ID — vanity slugs
+   * (e.g. "rocket-chat") are silently ignored by Unipile and produce a
+   * filterless people search (= random results from the logged user's
+   * network). Resolve the slug via `getOne()` first if needed.
+   *
    * @param {Object} params
    * @param {string} params.account_id - Unipile account ID (required)
-   * @param {string} params.company_id - Company ID or identifier (required)
+   * @param {string} params.company_id - Numeric LinkedIn company ID (required)
    * @param {string} [params.keywords] - Filter employees by keywords
    * @param {string|string[]} [params.job_title] - Filter by job title
    * @param {number} [params.limit=25] - Max results
@@ -165,10 +172,13 @@ class UnipileCompanyManager {
 
     const url = `${this.provider.getBaseUrl()}/linkedin/search?account_id=${account_id}`;
 
+    // Classic API expects `company` (singular) — the plural `companies` was a
+    // long-standing bug here that caused filterless people searches. Mirrors
+    // the convention applied in `linkedin.search` since v1.7.9.
     const body = {
       category: 'people',
       api: 'classic',
-      companies: [company_id],
+      company: [String(company_id)],
       limit
     };
 

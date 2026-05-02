@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.11] - 2026-05-02
+
+### Fixed
+
+- **company.getEmployees** - Fixed the `/linkedin/search` payload key. Body
+  was emitting `companies: [...]` (plural) but the Classic API expects
+  `company: [...]` (singular). With the wrong key, Unipile silently dropped
+  the company filter and `category: 'people'` returned a filterless people
+  search — i.e. random results from the logged user's network instead of
+  the target company's employees.
+  - Mirrors the same fix applied to `linkedin.search` in v1.7.9.
+  - Now also coerces `company_id` to a string before sending, since Unipile
+    rejects numeric types for this field.
+  - Doc-comment updated to clarify that **numeric** company IDs are required;
+    vanity slugs trigger the same silent failure (resolve via `company.getOne`
+    first).
+
 ## [1.7.10] - 2026-04-29
 
 ### Fixed
