@@ -100,6 +100,7 @@ ProviderTypes.TELEGRAM
 ProviderTypes.TWITTER
 ProviderTypes.EMAIL
 ProviderTypes.SMS
+ProviderTypes.WEBCHAT     // v1.9.0+
 ```
 
 ## Provider-specific event mappings
@@ -126,6 +127,29 @@ fields:
 
 The original channel is preserved in `event.metadata.originalEvent`, so you
 can branch on it when the normalized type is `UNKNOWN`.
+
+### Webchat (`provider: 'webchat'`, `providerType: 'WEBCHAT'`)
+
+The webchat parser refines the event type by `senderType`:
+
+| Sender type | Normalized `type` | Source |
+|---|---|---|
+| `lead` | `MESSAGE_RECEIVED` | Visitor sent a message |
+| `user` | `MESSAGE_SENT` | Human agent sent a reply |
+| `ai` | `MESSAGE_SENT` | AI bot sent a reply |
+| anything else | `UNKNOWN` | — |
+
+The full visitor profile is preserved in `event.metadata`:
+
+```
+{
+  widgetKey, channelId,
+  senderType,
+  visitorToken, visitorEmail, visitorPhone, contactId,
+  pageUrl, referrer, userAgent, ip,
+  isResume
+}
+```
 
 ### Unipile (`provider: 'unipile'`)
 

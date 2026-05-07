@@ -1,7 +1,7 @@
 {
   "name": "@guilhermegoulart1/relay-core",
-  "version": "1.8.0",
-  "description": "Core messaging integrations - Unipile, Uazapi (WhatsApp) and more",
+  "version": "1.9.0",
+  "description": "Core messaging integrations - Unipile, Uazapi (WhatsApp), Webchat and more",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "exports": {
@@ -14,6 +14,9 @@
     },
     "./providers/uazapi": {
       "require": "./src/providers/uazapi/index.js"
+    },
+    "./providers/webchat": {
+      "require": "./src/providers/webchat/index.js"
     },
     "./events": {
       "require": "./src/events/index.js"
@@ -56,10 +59,18 @@
   },
   "peerDependencies": {
     "bull": "^4.0.0",
+    "express": "^4.18.0",
+    "express-rate-limit": "^7.0.0",
     "ioredis": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "bull": {
+      "optional": true
+    },
+    "express": {
+      "optional": true
+    },
+    "express-rate-limit": {
       "optional": true
     },
     "ioredis": {

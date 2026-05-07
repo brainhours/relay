@@ -1,0 +1,36 @@
+{
+  "name": "@guilhermegoulart1/relay-webchat-widget",
+  "version": "1.0.0",
+  "description": "Embeddable webchat widget for the @guilhermegoulart1/relay-core webchat provider",
+  "main": "dist/widget.js",
+  "files": [
+    "dist",
+    "src",
+    "build.js",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js --watch"
+  },
+  "keywords": [
+    "webchat",
+    "widget",
+    "relay",
+    "embeddable",
+    "chat"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guilhermegoulart1/relay.git",
+    "directory": "packages/webchat-widget"
+  },
+  "author": "Guilherme Goulart <guilherme@leadraze.com>",
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

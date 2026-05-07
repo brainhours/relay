@@ -154,6 +154,49 @@ Unipile provides unified access to multiple messaging platforms:
 | Messenger | Stable | Messages |
 | Email | Stable | IMAP/SMTP |
 
+### Webchat Provider (v1.9.0+)
+
+First-party embeddable chat channel. Unlike Unipile/Uazapi, webchat is **the
+consuming app's own server**, not a wrapper around a third-party API. The
+provider ships:
+
+- `createWebchatHandler({ storage, realtime, emitter })` — Express factory
+  mounting the 5 public routes (`/config`, `/session`, `/message`, `/identify`,
+  `/history`) with dynamic CORS, rate limiting, and ownership checks
+- `WebchatStorageAdapter` — abstract contract; apps implement against their
+  own DB
+- `WebchatRealtimeAdapter` — abstract contract for realtime fan-out
+- `SSERealtimeAdapter` — zero-dep default (Server-Sent Events, single-process)
+- `InMemoryWebchatStorage` — zero-dep default storage for examples/POCs
+- `WebchatProvider.messaging.sendMessage(...)` for agent/AI → visitor
+
+Plus the companion package `@guilhermegoulart1/relay-webchat-widget` with the
+embeddable widget itself.
+
+```javascript
+const {
+  createWebchatHandler, InMemoryWebchatStorage, SSERealtimeAdapter,
+  MessagingEventEmitter, EventTypes
+} = require('@guilhermegoulart1/relay-core');
+
+const storage = new InMemoryWebchatStorage();
+storage.seedChannel({ widgetKey: 'demo', accountId: 'acc-1' });
+const realtime = new SSERealtimeAdapter();
+const emitter = new MessagingEventEmitter();
+
+emitter.on(EventTypes.MESSAGE_RECEIVED, (e) => {
+  if (e.providerType === 'WEBCHAT') console.log('visitor:', e.content);
+});
+
+app.use('/api/public/webchat', createWebchatHandler({ storage, realtime, emitter }));
+```
+
+Visitor messages emit `NormalizedEvent.MESSAGE_RECEIVED` on the same emitter
+as Unipile and Uazapi — so a single `emitter.on(MESSAGE_RECEIVED, ...)`
+handler (filtered by `event.providerType`) can serve all 3 channels.
+
+See [docs/providers.md](../../docs/providers.md) for the full reference.
+
 ### Uazapi Provider (v1.8.0+)
 
 [Uazapi](https://docs.uazapi.com/) is a Brazilian WhatsApp API. The Uazapi

@@ -34,10 +34,26 @@ const {
   BaseProvider,
   UnipileProvider,
   UazapiProvider,
+  WebchatProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature
 } = require('./providers');
+
+// Webchat sub-modules (v1.9.0+)
+const {
+  WebchatMessagingManager,
+  createWebchatHandler,
+  WebchatStorageAdapter,
+  WebchatRealtimeAdapter,
+  SSERealtimeAdapter,
+  InMemoryWebchatStorage,
+  parseWebchatWebhook,
+  validateWebchatSignature,
+  generateWebhookJobId: generateWebchatWebhookJobId,
+  generateVisitorToken,
+  isValidVisitorTokenFormat
+} = require('./providers/webchat');
 
 // Unipile sub-modules (v1.3.0+)
 const {
@@ -102,9 +118,23 @@ module.exports = {
   BaseProvider,
   UnipileProvider,
   UazapiProvider,
+  WebchatProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,
+
+  // Webchat (v1.9.0+)
+  WebchatMessagingManager,
+  createWebchatHandler,
+  WebchatStorageAdapter,
+  WebchatRealtimeAdapter,
+  SSERealtimeAdapter,
+  InMemoryWebchatStorage,
+  parseWebchatWebhook,
+  validateWebchatSignature,
+  generateWebchatWebhookJobId,
+  generateVisitorToken,
+  isValidVisitorTokenFormat,
 
   // Unipile managers (v1.3.0+)
   UnipilePostsManager,

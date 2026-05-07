@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-05-07
+
+### Added
+
+- **Webchat provider** — first-party embeddable chat channel.
+
+  Webchat is the third channel after Unipile and Uazapi, but architecturally
+  different: it is the consuming app's own server, not a wrapper around a
+  third-party API. The provider ships the protocol contract (HTTP routes,
+  realtime hooks, NormalizedEvent emission) and lets the app inject Storage
+  and Realtime adapters for full control.
+
+  Components:
+    - `WebchatProvider` — provider class with a messaging manager that
+      sends agent/AI messages to visitors (mirrors the API of Unipile/Uazapi
+      messaging managers; emits `MESSAGE_SENT` on the configured emitter).
+    - `createWebchatHandler({ storage, realtime, emitter })` — Express
+      Router factory mounting the 5 public routes:
+      `GET /:widgetKey/config`, `POST /:widgetKey/session`,
+      `POST /:widgetKey/message`, `POST /:widgetKey/identify`,
+      `GET /:widgetKey/history`. Includes dynamic CORS (looks up
+      `channel.allowed_origins`), default rate limiting (uses
+      `express-rate-limit` if installed), 256kb JSON body parser, and
+      ownership checks on every visitor request.
+    - `WebchatStorageAdapter` — abstract contract apps implement against
+      their own database. Relay never touches SQL.
+    - `WebchatRealtimeAdapter` — abstract contract for realtime fan-out.
+      The adapter publishes events server-side AND tells the widget how to
+      receive them (via `getWidgetConnectionInfo`).
+    - `SSERealtimeAdapter` — zero-dependency default. Server-Sent Events
+      over HTTP using only Node + Express built-ins. Single-process; for
+      multi-pod deployments apps write a Redis/NATS adapter (or use a
+      hosted service like Ably — see `examples/webchat-ably`).
+    - `InMemoryWebchatStorage` — zero-dependency default storage for
+      examples and POCs.
+    - `parseWebchatWebhook(payload)` — converts a webchat message payload
+      to a `NormalizedEvent`. Visitor messages → `MESSAGE_RECEIVED`;
+      agent/AI messages → `MESSAGE_SENT`. Fully symmetric with Unipile and
+      Uazapi events, so handlers written for one provider work for all.
+    - `parseWebhook('webchat', payload)` registered in the provider factory.
+
+  **Deliberately not shipped**: adapters for Ably, Pusher, or any paid
+  third-party service. The contract is open and `examples/webchat-ably/`
+  shows a 50-LOC reference implementation that apps can copy.
+
+  New types:
+    - `ProviderTypes.WEBCHAT = 'WEBCHAT'`
+
+  New peer dependencies (all optional):
+    - `express ^4.18` — required only when `createWebchatHandler` is called
+    - `express-rate-limit ^7.0` — used as default rate limiter when present
+
+  New companion package: `@guilhermegoulart1/relay-webchat-widget@1.0.0` —
+  vanilla-JS embeddable widget (~17kb minified) with built-in SSE and
+  WebSocket transports, plus a `RelayWebchat.registerTransport(name, factory)`
+  plugin slot for custom transports (Ably, Pusher, etc.).
+
+  See [docs/providers.md](../../docs/providers.md) and
+  [examples/webchat](../../examples/webchat) for setup.
+
 ## [1.8.0] - 2026-05-06
 
 ### Added

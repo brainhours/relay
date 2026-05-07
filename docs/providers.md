@@ -8,6 +8,7 @@ Relay supports multiple messaging providers through a unified interface.
 |----------|--------|----------|
 | Unipile | Stable | LinkedIn, WhatsApp, Instagram, Telegram, Messenger, Email |
 | Uazapi | Stable (v1.8.0+) | WhatsApp (Brazilian API, multi-instance) |
+| Webchat | Stable (v1.9.0+) | First-party embeddable chat on your customer's site |
 | Twilio | Coming Soon | SMS, WhatsApp, Voice |
 
 ## Unipile Provider
@@ -511,6 +512,215 @@ await uazapi.webhooks.set({
   excludeMessages: []           // get every message back
 });
 ```
+
+---
+
+## Webchat Provider
+
+First-party embeddable chat channel. Architecturally unique among Relay
+providers: there is no external API to wrap — your Express server **is** the
+chat backend. The Relay supplies the protocol contract (HTTP routes,
+NormalizedEvent emission, realtime hooks) and lets you inject `Storage` and
+`Realtime` adapters for full control over persistence and transport.
+
+### Components
+
+| Component | Type | Description |
+|-----------|------|-------------|
+| `WebchatProvider` | class | Provider with messaging manager (agent/AI → visitor) |
+| `createWebchatHandler({...})` | factory | Mounts 5 public Express routes |
+| `WebchatStorageAdapter` | abstract | Persistence contract — apps implement |
+| `WebchatRealtimeAdapter` | abstract | Realtime contract — apps implement |
+| `SSERealtimeAdapter` | class | Zero-dep default realtime (single-process SSE) |
+| `InMemoryWebchatStorage` | class | Zero-dep default storage (POCs/tests) |
+| `parseWebchatWebhook(payload)` | fn | Payload → `NormalizedEvent` |
+| `@guilhermegoulart1/relay-webchat-widget` | pkg | Embeddable widget (separate package) |
+
+### Configuration
+
+```javascript
+const express = require('express');
+const {
+  createWebchatHandler,
+  InMemoryWebchatStorage,
+  SSERealtimeAdapter,
+  MessagingEventEmitter,
+  EventTypes
+} = require('@guilhermegoulart1/relay-core');
+
+// 1. Storage — InMemory for POCs; write your own DB-backed for production
+const storage = new InMemoryWebchatStorage();
+storage.seedChannel({
+  widgetKey: 'YOUR_32_CHAR_HEX_KEY',
+  accountId: 'your-tenant-id',
+  agent_name: 'Support',
+  welcome_message: 'Hi! How can we help?',
+  pre_chat_form: { enabled: true, fields: ['name', 'email'] },
+  allowed_origins: ['https://customer.com'],   // empty = allow all
+  is_active: true
+});
+
+// 2. Realtime — SSE built-in; or your own adapter for multi-pod / hosted services
+const realtime = new SSERealtimeAdapter();
+
+// 3. Emitter — same one used by Unipile/Uazapi handlers
+const emitter = new MessagingEventEmitter();
+emitter.on(EventTypes.MESSAGE_RECEIVED, (event) => {
+  if (event.providerType !== 'WEBCHAT') return;
+  // Visitor sent a message — same shape as Unipile/Uazapi events
+  console.log(event.senderName, '->', event.content);
+});
+
+// 4. Mount the handler
+const app = express();
+app.use('/api/public/webchat', createWebchatHandler({ storage, realtime, emitter }));
+
+// 5. Serve the widget bundle
+app.use('/widget/dist', express.static(
+  require('path').dirname(
+    require.resolve('@guilhermegoulart1/relay-webchat-widget/package.json')
+  ) + '/dist'
+));
+```
+
+### Public routes mounted by the factory
+
+| Method & Path | Purpose | Body / Query |
+|--------------|---------|--------------|
+| `GET /:widgetKey/config` | Return public widget config (theme, agent name, etc.) | — |
+| `POST /:widgetKey/session` | Create/resume a visitor session, return realtime info | `{ visitorToken?, name?, email?, phone?, pageUrl? }` |
+| `POST /:widgetKey/message` | Visitor sends a message; persisted + fan-out + emitter | `{ conversationId, visitorToken, content }` |
+| `POST /:widgetKey/identify` | Provide identity; optionally links to a contact | `{ visitorToken, name?, email?, phone?, company? }` |
+| `GET /:widgetKey/history` | Paginated history with ownership check | `?conversationId&visitorToken&limit&before` |
+
+Plus, when `SSERealtimeAdapter` is used, a `GET /_relay/sse` endpoint is
+mounted for the EventSource stream. Other realtime adapters mount their own
+endpoints (or none, if they use a hosted service).
+
+### Storage adapter contract
+
+Apps implement `WebchatStorageAdapter` against their database. Methods:
+
+```js
+class MyWebchatStorage extends WebchatStorageAdapter {
+  // Channel config
+  async getChannelByWidgetKey(widgetKey)         // returns full channel record
+  async getPublicWidgetConfig(widgetKey)         // returns public-safe config
+
+  // Visitors
+  async findVisitor(visitorToken)
+  async createVisitor({ accountId, channelId, profile, metadata })
+  async updateVisitorIdentity(visitorId, { name, email, phone, contactId })
+  async touchVisitor(visitorId)
+
+  // Contact linking (optional)
+  async findContactByEmail(accountId, email)     // override-optional
+  async createContact(accountId, profile)        // override-optional
+
+  // Conversations
+  async findOpenConversationForVisitor(visitorId)
+  async createConversation({ accountId, channelId, visitorId, contactId })
+  async getConversationForVisitor(conversationId, visitorId)   // ownership check
+  async setConversationContact(conversationId, contactId)
+  async updateConversationOnNewMessage(conversationId, { lastPreview, lastAt, fromVisitor })
+
+  // Messages
+  async insertMessage({ conversationId, accountId, senderType, content, providerType })
+  async loadHistory(conversationId, { limit, before })
+}
+```
+
+The Relay **never touches SQL**. Use Postgres, Mongo, SQLite, Drizzle, Prisma —
+your call. See [examples/webchat/server.js](../examples/webchat/) for the
+complete in-memory reference, and [c:\getraze\backend\src\services\webchatStorageAdapter.js](c:\getraze\backend\src\services\webchatStorageAdapter.js)
+for a Postgres reference (after migration to v1.9.0).
+
+### Realtime adapter contract
+
+```js
+class MyWebchatRealtime extends WebchatRealtimeAdapter {
+  async publish(channel, event, data)             // server-side fan-out
+  async getWidgetConnectionInfo(ctx)              // tells widget how to subscribe
+  attachServerHandlers(router, { storage })       // optional: mount /stream or /ws
+  isAvailable()                                    // readiness check
+}
+```
+
+Channel naming convention:
+- `conversation:{conversationId}` — visitor + agents subscribed
+- `account:{accountId}` — agents/dashboard only
+
+Standard event names: `new_message`, `conversation_updated`, `message_read`.
+
+#### Available implementations
+
+| Adapter | Where it lives | Use case |
+|---------|----------------|----------|
+| `SSERealtimeAdapter` | Shipped in `relay-core` | Single-process app, zero deps |
+| Custom WebSocket | Write yourself | Single-process, lower latency than SSE |
+| Ably / Pusher / PubNub | Write yourself; see [examples/webchat-ably/](../examples/webchat-ably/) | Multi-pod, hosted, auto-scaling |
+| Redis pub/sub on top of SSE/WS | Write yourself | Multi-pod, self-hosted |
+
+The Relay deliberately **does not ship adapters for paid third-party services**.
+Implementing one is ~50 LOC; the Ably reference example shows the pattern.
+
+### Widget integration
+
+```html
+<script
+  src="https://your-app.com/widget/dist/widget.js"
+  data-widget-key="YOUR_32_CHAR_HEX_KEY"
+  data-api-url="https://your-app.com"
+  defer
+></script>
+```
+
+The widget auto-detects the realtime transport from the `/session` response
+and connects accordingly. SSE and WebSocket are built in; for custom
+transports (Ably, Pusher, ...) load a transport plugin script that registers
+via `RelayWebchat.registerTransport(name, factory)` BEFORE the widget connects.
+
+### NormalizedEvent shape
+
+Every visitor message emitted on the configured `MessagingEventEmitter`:
+
+```js
+{
+  type: 'message.received',           // EventTypes.MESSAGE_RECEIVED
+  provider: 'webchat',
+  providerType: 'WEBCHAT',            // ProviderTypes.WEBCHAT
+  accountId, chatId, messageId,
+  senderId,                            // visitor ID
+  senderName,                          // display_name from visitor
+  content,                             // text
+  timestamp,                           // ISO
+  attachments: [],                     // future: file uploads
+  metadata: {
+    widgetKey, channelId,
+    senderType: 'lead' | 'user' | 'ai',
+    visitorToken, visitorEmail, visitorPhone, contactId,
+    pageUrl, referrer, userAgent, ip,
+    isResume                           // first message of a resumed session?
+  },
+  raw: <original payload>
+}
+```
+
+Outbound messages (sent via `webchat.messaging.sendMessage(...)`) emit
+`MESSAGE_SENT` with the same shape — symmetry that lets handlers be
+provider-agnostic.
+
+### Security
+
+- **CORS**: dynamic per channel via `channel.allowed_origins`. Empty array = allow all (dev).
+- **Visitor token**: 32-byte hex, stored in `localStorage` under `relay_vt_${widgetKey}`,
+  validated against storage on every request.
+- **Rate limiting**: defaults via `express-rate-limit` (peer dep optional) —
+  30 req/min for `/message`, 10 req/min for `/session`. Pass your own to override.
+- **Ownership**: every visitor request resolves `(channel, visitor, conversation)`
+  and rejects mismatches with 403.
+- **No HMAC**: webchat is not a third-party webhook. The token + origin checks
+  are the security model.
 
 ---
 

@@ -14,13 +14,19 @@ const {
   parseUazapiWebhook,
   validateUazapiSignature
 } = require('./uazapi/webhooks');
+const { WebchatProvider } = require('./webchat/client');
+const {
+  parseWebchatWebhook,
+  validateWebchatSignature
+} = require('./webchat/webhooks');
 
 /**
  * Available providers
  */
 const providers = {
   unipile: UnipileProvider,
-  uazapi: UazapiProvider
+  uazapi: UazapiProvider,
+  webchat: WebchatProvider
   // twilio: TwilioProvider, // Coming soon
 };
 
@@ -54,6 +60,8 @@ function parseWebhook(providerName, rawPayload) {
       return parseUnipileWebhook(rawPayload);
     case 'uazapi':
       return parseUazapiWebhook(rawPayload);
+    case 'webchat':
+      return parseWebchatWebhook(rawPayload);
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -74,6 +82,8 @@ function validateWebhookSignature(providerName, payload, signature, secret) {
       return validateUnipileSignature(payload, signature, secret);
     case 'uazapi':
       return validateUazapiSignature(payload, signature, secret);
+    case 'webchat':
+      return validateWebchatSignature(payload, signature, secret);
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -83,6 +93,7 @@ module.exports = {
   BaseProvider,
   UnipileProvider,
   UazapiProvider,
+  WebchatProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,

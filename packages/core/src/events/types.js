@@ -36,7 +36,8 @@ const ProviderTypes = {
   TELEGRAM: 'TELEGRAM',
   TWITTER: 'TWITTER',
   EMAIL: 'EMAIL',
-  SMS: 'SMS'
+  SMS: 'SMS',
+  WEBCHAT: 'WEBCHAT'
 };
 
 /**
