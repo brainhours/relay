@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1] - 2026-05-07
+
+### Fixed
+
+- **Meta WhatsApp Cloud API: `messaging_limit_tier` field deprecated by Meta.**
+  Meta silently stopped returning this field around Graph API v22+ even when
+  explicitly requested (no error, just absent in the response). This caused
+  apps to always see `null` for messaging tier on connect.
+
+  Replacement field is `whatsapp_business_manager_messaging_limit` (same string
+  format: `TIER_50`, `TIER_250`, `TIER_1K`, `TIER_10K`, `TIER_100K`, `TIER_UNLIMITED`).
+
+  Updated `MetaCloudApiAccountManager`:
+    - `DEFAULT_PHONE_FIELDS` requests the new field.
+    - `verifyConnection()` reads `info.whatsapp_business_manager_messaging_limit`
+      and exposes it as `tier` (same surface as before).
+    - Also added `throughput` and `platformType` to the `verifyConnection` return shape.
+
+  See https://developers.facebook.com/docs/whatsapp/messaging-limits/.
+
 ## [1.10.0] - 2026-05-07
 
 ### Added

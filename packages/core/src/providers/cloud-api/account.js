@@ -8,8 +8,11 @@
  * @see https://developers.facebook.com/docs/whatsapp/cloud-api/reference/phone-numbers
  */
 
+// Default fields. Meta deprecated `messaging_limit_tier` around Graph API v22+;
+// the replacement field is `whatsapp_business_manager_messaging_limit` (same
+// value format, e.g. "TIER_10K").
 const DEFAULT_PHONE_FIELDS =
-  'id,display_phone_number,verified_name,quality_rating,code_verification_status,name_status,messaging_limit_tier,throughput,certificate,platform_type';
+  'id,display_phone_number,verified_name,quality_rating,code_verification_status,name_status,whatsapp_business_manager_messaging_limit,throughput,certificate,platform_type';
 const DEFAULT_WABA_FIELDS =
   'id,name,timezone_id,message_template_namespace,currency,owner_business_info,business_verification_status,country';
 
@@ -112,7 +115,8 @@ class MetaCloudApiAccountManager {
    * End-to-end connectivity check. Calls getPhoneNumber under the hood; if it
    * succeeds, credentials are valid and the phone number is reachable.
    *
-   * Returns `{ ok: true, displayPhoneNumber, verifiedName, qualityRating, tier }`.
+   * Returns `{ ok: true, id, displayPhoneNumber, verifiedName, qualityRating, tier, throughput }`.
+   * `tier` is a string like "TIER_10K" (Meta enum) or null if Meta didn't populate.
    * Throws MetaApiError on failure (auth invalid, phone not found, etc.).
    *
    * @param {Object} params
@@ -123,7 +127,7 @@ class MetaCloudApiAccountManager {
     const info = await this.getPhoneNumber({
       accessToken,
       phoneNumberId,
-      fields: 'id,display_phone_number,verified_name,quality_rating,messaging_limit_tier'
+      fields: 'id,display_phone_number,verified_name,quality_rating,whatsapp_business_manager_messaging_limit,throughput,platform_type'
     });
     return {
       ok: true,
@@ -131,7 +135,11 @@ class MetaCloudApiAccountManager {
       displayPhoneNumber: info.display_phone_number,
       verifiedName: info.verified_name,
       qualityRating: info.quality_rating,
-      tier: info.messaging_limit_tier
+      // String format from Meta: TIER_50, TIER_250, TIER_1K, TIER_10K,
+      // TIER_100K, TIER_UNLIMITED. Null if Meta didn't populate (rare).
+      tier: info.whatsapp_business_manager_messaging_limit || null,
+      throughput: info.throughput || null,
+      platformType: info.platform_type || null
     };
   }
 }
