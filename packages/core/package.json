@@ -1,7 +1,7 @@
 {
   "name": "@guilhermegoulart1/relay-core",
-  "version": "1.9.0",
-  "description": "Core messaging integrations - Unipile, Uazapi (WhatsApp), Webchat and more",
+  "version": "1.10.0",
+  "description": "Core messaging integrations - Unipile, Uazapi (WhatsApp), Meta Cloud API (official WhatsApp), Webchat and more",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "exports": {
@@ -17,6 +17,9 @@
     },
     "./providers/webchat": {
       "require": "./src/providers/webchat/index.js"
+    },
+    "./providers/cloud-api": {
+      "require": "./src/providers/cloud-api/index.js"
     },
     "./events": {
       "require": "./src/events/index.js"

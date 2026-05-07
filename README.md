@@ -16,7 +16,7 @@
 
 ## Features
 
-- **Multi-provider support** - Unipile (LinkedIn / WhatsApp / Email / …), Uazapi (WhatsApp BR), and first-party Webchat
+- **Multi-provider support** - Unipile (LinkedIn / WhatsApp / Email / …), Uazapi (WhatsApp BR), Meta Cloud API (official WhatsApp), and first-party Webchat
 - **Normalized events** - Consistent event format across all messaging providers
 - **Webhook handling** - Built-in parsing, validation, and queue management
 - **Channel agnostic** - LinkedIn, WhatsApp, Instagram, Telegram, SMS, Email
@@ -29,7 +29,7 @@
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [@guilhermegoulart1/relay-core](./packages/core) | 1.9.0 | Core messaging integrations (Unipile + Uazapi + Webchat) |
+| [@guilhermegoulart1/relay-core](./packages/core) | 1.10.0 | Core messaging integrations (Unipile + Uazapi + Meta Cloud API + Webchat) |
 | [@guilhermegoulart1/relay-webchat-widget](./packages/webchat-widget) | 1.0.0 | Embeddable webchat widget (vanilla JS, transport-pluggable) |
 
 ---
@@ -99,12 +99,73 @@ app.post('/webhooks/unipile', (req, res) => {
 | LinkedIn | Unipile | Stable |
 | WhatsApp | Unipile | Stable |
 | WhatsApp (BR API) | Uazapi | Stable (v1.8.0+) |
+| WhatsApp (Meta official) | Cloud API | Stable (v1.10.0+) |
 | Webchat (your site) | Webchat | Stable (v1.9.0+) |
 | Instagram | Unipile | Stable |
 | Telegram | Unipile | Stable |
 | Messenger | Unipile | Stable |
 | Email | Unipile | Stable |
 | SMS | Twilio | Coming Soon |
+
+### Meta Cloud API (official WhatsApp) quick start
+
+```javascript
+const express = require('express');
+const {
+  MetaCloudApiProvider,
+  parseCloudApiWebhook,
+  validateCloudApiSignature,
+  MessagingEventEmitter,
+  EventTypes
+} = require('@guilhermegoulart1/relay-core');
+
+const meta = new MetaCloudApiProvider({
+  apiVersion: 'v22.0',
+  appSecret: process.env.META_APP_SECRET   // for HMAC validation
+});
+
+const emitter = new MessagingEventEmitter();
+emitter.on(EventTypes.MESSAGE_RECEIVED, (e) => {
+  if (e.provider !== 'cloud-api') return;
+  console.log(e.senderName, ':', e.content);
+});
+emitter.on(EventTypes.TEMPLATE_STATUS_CHANGED, (e) => {
+  console.log('Template', e.metadata.templateName, '->', e.metadata.newStatus);
+});
+
+const app = express();
+
+// Capture raw body for HMAC validation:
+app.use('/webhooks/meta', express.json({
+  verify: (req, _res, buf) => { req.rawBody = buf; }
+}));
+
+app.post('/webhooks/meta', (req, res) => {
+  const ok = validateCloudApiSignature(
+    req.rawBody, req.headers['x-hub-signature-256'], process.env.META_APP_SECRET
+  );
+  if (!ok) return res.sendStatus(401);
+
+  // parseCloudApiWebhook returns ARRAY (Cloud API batches up to 100 events per POST)
+  for (const event of parseCloudApiWebhook(req.body)) {
+    emitter.emit(event);
+  }
+  res.sendStatus(200);
+});
+
+// Send a template (per-call credentials -> multi-tenant ready)
+const creds = await db.loadCredsForTenant(tenantId);
+await meta.messaging.sendTemplate({
+  accessToken: creds.accessToken,
+  phoneNumberId: creds.phoneNumberId,
+  to: '5511999999999',
+  templateName: 'hello_world',
+  language: 'en_US',
+  components: []
+});
+```
+
+See [examples/cloud-api](./examples/cloud-api) for the full setup.
 
 ### Webchat (first-party embeddable chat) quick start
 

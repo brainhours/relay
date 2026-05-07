@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-05-07
+
+### Added
+
+- **Meta WhatsApp Cloud API provider** — official Meta Graph API integration
+  alongside Unipile, Uazapi (non-official) and Webchat. Apps using
+  `relay-core` can now wire the official Cloud API channel without writing
+  the HTTP client, webhook parser or HMAC validator from scratch.
+
+  Architecture: stateless provider, single global endpoint
+  (`https://graph.facebook.com/{apiVersion}`), per-call credentials
+  (`accessToken`, `phoneNumberId`, `businessAccountId`). Multi-tenancy is
+  100% in the consuming app — Relay only carries `apiVersion` and
+  `appSecret` (used for HMAC).
+
+  Components shipped:
+    - `MetaCloudApiProvider` — the provider class
+    - 4 managers:
+      - `messaging` — sendTemplate, sendText, sendInteractive (button / list /
+        cta_url / location_request / flow), sendMedia (mediaId or link),
+        sendLocation, sendContacts, sendReaction, markRead
+      - `templates` — list, listAll (auto-paginates Meta's cursor-based
+        paging), get (by name + language), create, delete (with optional
+        per-language hsmId), edit
+      - `media` — upload (multipart), download (2-step CDN with Bearer auth),
+        getInfo, delete
+      - `account` — getPhoneNumber, listPhoneNumbers, getBusinessAccount,
+        register, deregister, verifyConnection (handy for setup screens)
+    - `MetaApiError` — typed error preserving `metaCode`, `metaSubcode`,
+      `metaTitle`, `metaTraceId`, `metaDetails`. Includes `isRetryable()`.
+    - `META_ERROR_CODES` — frozen object naming the codes apps usually react
+      to (RATE_LIMIT, PHONE_NOT_ON_WHATSAPP, WINDOW_EXPIRED,
+      TEMPLATE_NOT_APPROVED, USER_OPTED_OUT, etc.)
+    - `parseCloudApiWebhook(rawPayload)` — returns `NormalizedEvent[]`
+      (Cloud API batches up to ~100 events per POST). Covers:
+        - inbound messages (text, image, audio, video, document, sticker,
+          location, contacts, button, interactive button_reply / list_reply /
+          nfm_reply, reaction)
+        - statuses (sent, delivered, read, **failed** — see new event type)
+        - **`message_template_status_update`** → emits new
+          `EventTypes.TEMPLATE_STATUS_CHANGED` (apps that listen react to
+          template status changes without polling Meta)
+        - `account_update`, `business_capability_update`,
+          `phone_number_quality_update`, `phone_number_name_update`
+        - change-level errors → `MESSAGE_FAILED`
+    - `validateCloudApiSignature(rawBody, header, appSecret)` — HMAC-SHA256
+      validation against `X-Hub-Signature-256`, with `timingSafeEqual`.
+      App must capture raw body in Express via `verify` callback.
+    - `generateCloudApiWebhookJobId(event)` — deterministic dedup key for
+      Bull queue.
+    - Helpers (opt-in, pure functions, no Redis/BullMQ inside):
+      - `effectiveDailyLimit(tier, marginPct)` — accepts numeric tiers
+        (250, 1000, …) AND Meta's string format (`'TIER_1K'`,
+        `'TIER_100K'`, `'TIER_UNLIMITED'`)
+      - `stableVariant(key, { variants, salt })` — SHA-1 stable A/B split
+        for mass send
+      - `isInWindow(lastInboundAt, windowMs?)` — 24h customer-service window check
+
+  Wiring:
+    - `createProvider('cloud-api', config)` works in the factory
+    - `parseWebhook('cloud-api', payload)` returns the array
+    - `validateWebhookSignature('cloud-api', rawBody, header, secret)` delegates
+    - `MetaCloudApiProvider` exported from package root and from
+      `@guilhermegoulart1/relay-core/providers/cloud-api`
+
+### New EventTypes
+
+- `MESSAGE_FAILED` — `'message.failed'`. Cloud API emits this for
+  `statuses[].status === 'failed'` and for change-level `errors[]`. Generic
+  enough to back-port to Unipile/Uazapi later.
+- `TEMPLATE_STATUS_CHANGED` — `'template.status_changed'`. Cloud API
+  `message_template_status_update`. `NormalizedEvent.isTemplateEvent()`
+  helper added.
+
+### Examples
+
+- `examples/cloud-api/` — Express demo with webhook GET handshake + POST
+  with HMAC, send template endpoint, verify-connection endpoint, and
+  `test-smoke.js` covering 33 offline scenarios (parser, signature,
+  helpers, errors, factory wiring).
+
 ## [1.9.0] - 2026-05-07
 
 ### Added

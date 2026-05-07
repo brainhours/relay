@@ -35,10 +35,28 @@ const {
   UnipileProvider,
   UazapiProvider,
   WebchatProvider,
+  MetaCloudApiProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature
 } = require('./providers');
+
+// Cloud API (Meta WhatsApp official) sub-modules (v1.10.0+)
+const {
+  MetaCloudApiMessagingManager,
+  MetaCloudApiTemplateManager,
+  MetaCloudApiMediaManager,
+  MetaCloudApiAccountManager,
+  MetaApiError,
+  META_ERROR_CODES,
+  isRetryable: isCloudApiRetryable,
+  parseCloudApiWebhook,
+  validateCloudApiSignature,
+  generateWebhookJobId: generateCloudApiWebhookJobId,
+  effectiveDailyLimit,
+  stableVariant,
+  isInWindow
+} = require('./providers/cloud-api');
 
 // Webchat sub-modules (v1.9.0+)
 const {
@@ -119,9 +137,25 @@ module.exports = {
   UnipileProvider,
   UazapiProvider,
   WebchatProvider,
+  MetaCloudApiProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,
+
+  // Cloud API (Meta WhatsApp official) (v1.10.0+)
+  MetaCloudApiMessagingManager,
+  MetaCloudApiTemplateManager,
+  MetaCloudApiMediaManager,
+  MetaCloudApiAccountManager,
+  MetaApiError,
+  META_ERROR_CODES,
+  isCloudApiRetryable,
+  parseCloudApiWebhook,
+  validateCloudApiSignature,
+  generateCloudApiWebhookJobId,
+  effectiveDailyLimit,
+  stableVariant,
+  isInWindow,
 
   // Webchat (v1.9.0+)
   WebchatMessagingManager,

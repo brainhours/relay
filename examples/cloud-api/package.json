@@ -1,0 +1,17 @@
+{
+  "name": "relay-cloud-api-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example Express app using the Meta WhatsApp Cloud API provider in @guilhermegoulart1/relay-core",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test:smoke": "node test-smoke.js"
+  },
+  "dependencies": {
+    "@guilhermegoulart1/relay-core": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  }
+}

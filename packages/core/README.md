@@ -154,6 +154,81 @@ Unipile provides unified access to multiple messaging platforms:
 | Messenger | Stable | Messages |
 | Email | Stable | IMAP/SMTP |
 
+### Meta WhatsApp Cloud API Provider (v1.10.0+)
+
+Official Meta Graph API integration. Stateless, single global endpoint
+(`https://graph.facebook.com/{apiVersion}`), per-call credentials. Multi-tenant
+apps load credentials per tenant from their DB and pass them to each call.
+
+```javascript
+const { MetaCloudApiProvider, parseCloudApiWebhook, validateCloudApiSignature } =
+  require('@guilhermegoulart1/relay-core');
+
+const meta = new MetaCloudApiProvider({
+  apiVersion: 'v22.0',
+  appSecret: process.env.META_APP_SECRET
+});
+
+// Send template (works any time)
+await meta.messaging.sendTemplate({
+  accessToken: creds.accessToken,
+  phoneNumberId: creds.phoneNumberId,
+  to: '5511999999999',
+  templateName: 'lembrete_renovacao',
+  language: 'pt_BR',
+  components: [
+    { type: 'body', parameters: [{ type: 'text', text: 'Joana' }] }
+  ]
+});
+
+// Send free-form text (only inside the 24h customer-service window)
+await meta.messaging.sendText({
+  accessToken: creds.accessToken,
+  phoneNumberId: creds.phoneNumberId,
+  to: '5511999999999',
+  body: 'Posso ajudar com mais alguma coisa?'
+});
+
+// Templates CRUD (auto-paginates Meta's cursor-based responses)
+const all = await meta.templates.listAll({
+  accessToken: creds.accessToken,
+  businessAccountId: creds.businessAccountId
+});
+
+// Verify credentials work end-to-end (great for setup screens)
+const info = await meta.account.verifyConnection({
+  accessToken: creds.accessToken,
+  phoneNumberId: creds.phoneNumberId
+});
+// => { ok: true, displayPhoneNumber, verifiedName, qualityRating, tier }
+```
+
+Webhooks (HMAC-SHA256 validated against the Meta App Secret) parse into
+`NormalizedEvent[]` — one POST often batches multiple events:
+
+```javascript
+app.use('/webhooks/meta', express.json({
+  verify: (req, _res, buf) => { req.rawBody = buf; }
+}));
+
+app.post('/webhooks/meta', (req, res) => {
+  if (!validateCloudApiSignature(req.rawBody, req.headers['x-hub-signature-256'], appSecret)) {
+    return res.sendStatus(401);
+  }
+  for (const ev of parseCloudApiWebhook(req.body)) emitter.emit(ev);
+  res.sendStatus(200);
+});
+```
+
+Two new EventTypes ship with this provider:
+- `MESSAGE_FAILED` — `statuses[].status === 'failed'` and change-level errors
+- `TEMPLATE_STATUS_CHANGED` — `message_template_status_update` (apps that listen
+  react to template approval/rejection without polling)
+
+Plus opt-in helpers: `effectiveDailyLimit(tier)`, `stableVariant(key)`,
+`isInWindow(lastInboundAt)`. See [docs/providers.md](../../docs/providers.md)
+for the full reference.
+
 ### Webchat Provider (v1.9.0+)
 
 First-party embeddable chat channel. Unlike Unipile/Uazapi, webchat is **the

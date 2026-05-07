@@ -11,6 +11,7 @@ const EventTypes = {
   MESSAGE_EDITED: 'message.edited',
   MESSAGE_DELETED: 'message.deleted',
   MESSAGE_REACTION: 'message.reaction',
+  MESSAGE_FAILED: 'message.failed',
 
   // Relation/connection events
   RELATION_CREATED: 'relation.created',
@@ -20,6 +21,9 @@ const EventTypes = {
   ACCOUNT_CONNECTED: 'account.connected',
   ACCOUNT_DISCONNECTED: 'account.disconnected',
   ACCOUNT_STATUS_CHANGED: 'account.status_changed',
+
+  // Template lifecycle (provider-specific support, e.g. Meta Cloud API)
+  TEMPLATE_STATUS_CHANGED: 'template.status_changed',
 
   // Unknown/unhandled
   UNKNOWN: 'unknown'
@@ -99,6 +103,14 @@ class NormalizedEvent {
    */
   isAccountEvent() {
     return this.type.startsWith('account.');
+  }
+
+  /**
+   * Check if this is a template lifecycle event (e.g. Cloud API template status change)
+   * @returns {boolean}
+   */
+  isTemplateEvent() {
+    return this.type.startsWith('template.');
   }
 
   /**

@@ -8,6 +8,7 @@ Relay supports multiple messaging providers through a unified interface.
 |----------|--------|----------|
 | Unipile | Stable | LinkedIn, WhatsApp, Instagram, Telegram, Messenger, Email |
 | Uazapi | Stable (v1.8.0+) | WhatsApp (Brazilian API, multi-instance) |
+| Cloud API | Stable (v1.10.0+) | WhatsApp (official Meta Cloud API) |
 | Webchat | Stable (v1.9.0+) | First-party embeddable chat on your customer's site |
 | Twilio | Coming Soon | SMS, WhatsApp, Voice |
 
@@ -511,6 +512,263 @@ await uazapi.webhooks.set({
   events: ['messages', 'messages_update'],
   excludeMessages: []           // get every message back
 });
+```
+
+---
+
+## Meta WhatsApp Cloud API Provider
+
+The official Meta Graph API integration. Single global endpoint
+(`https://graph.facebook.com/{apiVersion}`), no servers to manage, multi-tenant
+via per-call credentials.
+
+### Configuration
+
+```javascript
+const { MetaCloudApiProvider } = require('@guilhermegoulart1/relay-core');
+
+const meta = new MetaCloudApiProvider({
+  apiVersion: 'v22.0',                       // optional, default 'v22.0'
+  appSecret: process.env.META_APP_SECRET,    // required for HMAC validation
+  timeout: 15000                              // optional axios timeout
+});
+```
+
+The provider holds NO tenant state — each method call takes the credentials
+needed for that operation:
+
+| Operation type | Credentials |
+|---|---|
+| `messaging.*`, `media.upload/download` | `accessToken`, `phoneNumberId` |
+| `templates.*`, `account.listPhoneNumbers/getBusinessAccount` | `accessToken`, `businessAccountId` |
+| `account.getPhoneNumber/verifyConnection/register` | `accessToken`, `phoneNumberId` |
+
+Apps load these per tenant from their DB and pass them in.
+
+### Available managers
+
+| Manager | Access | Methods |
+|---------|--------|---------|
+| `messaging` | `meta.messaging` | sendTemplate, sendText, sendInteractive, sendMedia, sendLocation, sendContacts, sendReaction, markRead |
+| `templates` | `meta.templates` | list, listAll (auto-paginates), get, create, delete, edit |
+| `media` | `meta.media` | upload, download, getInfo, delete |
+| `account` | `meta.account` | getPhoneNumber, listPhoneNumbers, getBusinessAccount, register, deregister, verifyConnection |
+
+### Sending — examples
+
+```javascript
+// Template (allowed any time, including outside the 24h window)
+await meta.messaging.sendTemplate({
+  accessToken, phoneNumberId,
+  to: '5511999999999',
+  templateName: 'lembrete_renovacao',
+  language: 'pt_BR',
+  components: [
+    { type: 'body', parameters: [{ type: 'text', text: 'Joana' }] }
+  ]
+});
+
+// Free-form text (ONLY within 24h window after the contact's last inbound)
+await meta.messaging.sendText({
+  accessToken, phoneNumberId,
+  to: '5511999999999',
+  body: 'Posso ajudar?'
+});
+
+// Interactive buttons (within 24h window, OR via approved button-based template)
+await meta.messaging.sendInteractive({
+  accessToken, phoneNumberId,
+  to: '5511999999999',
+  interactive: {
+    type: 'button',
+    body: { text: 'Quer renovar agora?' },
+    action: {
+      buttons: [
+        { type: 'reply', reply: { id: 'YES', title: 'Sim, renovar' } },
+        { type: 'reply', reply: { id: 'LATER', title: 'Depois' } }
+      ]
+    }
+  }
+});
+
+// Media (upload then send)
+const { id: mediaId } = await meta.media.upload({
+  accessToken, phoneNumberId,
+  buffer, mimeType: 'image/jpeg', filename: 'product.jpg'
+});
+await meta.messaging.sendMedia({
+  accessToken, phoneNumberId,
+  to: '5511999999999',
+  type: 'image',
+  mediaId,
+  caption: 'Aqui está'
+});
+```
+
+### Errors — `MetaApiError`
+
+Every Cloud API failure is thrown as `MetaApiError` with all Meta fields preserved:
+
+```javascript
+const { MetaApiError, META_ERROR_CODES } = require('@guilhermegoulart1/relay-core');
+
+try {
+  await meta.messaging.sendTemplate({ ... });
+} catch (err) {
+  if (err instanceof MetaApiError) {
+    if (err.metaCode === META_ERROR_CODES.TEMPLATE_NOT_APPROVED) {
+      // Resync templates and surface "template under review" to the user
+    } else if (err.metaCode === META_ERROR_CODES.RATE_LIMIT) {
+      // Retry later — err.isRetryable() === true
+    } else if (err.metaCode === META_ERROR_CODES.WINDOW_EXPIRED) {
+      // Switch to template send
+    }
+    console.error(err.metaTraceId);  // Meta support reference
+  }
+  throw err;
+}
+```
+
+### Templates
+
+Local mirror is the app's responsibility (the Relay doesn't store anything).
+Apps typically call `templates.listAll()` periodically and on-demand, plus
+listen to `EventTypes.TEMPLATE_STATUS_CHANGED` webhooks to update their
+local cache without polling.
+
+```javascript
+const all = await meta.templates.listAll({
+  accessToken, businessAccountId
+});
+// => Array of { id, name, language, category, status, components, ... }
+
+// Create a template (Meta reviews → status starts PENDING typically)
+await meta.templates.create({
+  accessToken, businessAccountId,
+  name: 'lembrete_renovacao',
+  language: 'pt_BR',
+  category: 'UTILITY',
+  components: [
+    { type: 'BODY', text: 'Olá {{1}}, seu certificado vence em {{2}}.',
+      example: { body_text: [['Joana', '10/05/2026']] } },
+    { type: 'BUTTONS', buttons: [
+      { type: 'QUICK_REPLY', text: 'Renovar agora' },
+      { type: 'QUICK_REPLY', text: 'Mais tarde' }
+    ]}
+  ]
+});
+```
+
+### Webhooks
+
+Cloud API webhooks need TWO things from the app:
+
+1. **Capture raw body** for HMAC validation (Express needs a `verify` callback):
+2. **Iterate the array** — `parseCloudApiWebhook` returns `NormalizedEvent[]`
+   because Cloud API batches up to ~100 events per POST.
+
+```javascript
+const { parseCloudApiWebhook, validateCloudApiSignature } =
+  require('@guilhermegoulart1/relay-core');
+
+app.use('/webhooks/meta', express.json({
+  verify: (req, _res, buf) => { req.rawBody = buf; }
+}));
+
+// GET handshake
+app.get('/webhooks/meta', (req, res) => {
+  if (req.query['hub.mode'] === 'subscribe' &&
+      req.query['hub.verify_token'] === expectedToken) {
+    return res.send(req.query['hub.challenge']);
+  }
+  res.sendStatus(403);
+});
+
+// POST events
+app.post('/webhooks/meta', (req, res) => {
+  if (!validateCloudApiSignature(
+    req.rawBody, req.headers['x-hub-signature-256'], appSecret
+  )) return res.sendStatus(401);
+
+  for (const event of parseCloudApiWebhook(req.body)) {
+    // event.accountId === phoneNumberId for messages/statuses,
+    // === businessAccountId for template/account events.
+    // Use it for multi-tenant resolution against your DB.
+    emitter.emit(event);
+  }
+  res.sendStatus(200);
+});
+```
+
+#### Event mapping
+
+| Webhook field | Refined by | Normalized type |
+|---|---|---|
+| `messages[]` (text/image/video/audio/document/sticker/location/contact/button/interactive/reaction) | — | `MESSAGE_RECEIVED` (always; Meta only delivers inbound) |
+| `statuses[].status === 'sent'` | — | `MESSAGE_SENT` |
+| `statuses[].status === 'delivered'` | — | `MESSAGE_DELIVERED` |
+| `statuses[].status === 'read'` | — | `MESSAGE_READ` |
+| `statuses[].status === 'failed'` | — | `MESSAGE_FAILED` (errors[] in `metadata.errors`) |
+| change-level `errors[]` | — | `MESSAGE_FAILED` |
+| `field === 'message_template_status_update'` | `value.event` | `TEMPLATE_STATUS_CHANGED` (newStatus + reason in metadata) |
+| `field === 'account_update'`, `business_capability_update`, `phone_number_quality_update`, `phone_number_name_update` | — | `ACCOUNT_STATUS_CHANGED` |
+| Other / new fields | — | `UNKNOWN` (with `metadata.originalEvent`) |
+
+### Helpers (opt-in pure functions)
+
+```javascript
+const { effectiveDailyLimit, stableVariant, isInWindow } =
+  require('@guilhermegoulart1/relay-core');
+
+// Pace your dispatcher 80% below Meta's tier
+const cap = effectiveDailyLimit(tier);
+// tier accepts numbers (250, 1000, 10000, 100000, Infinity)
+// AND Meta's strings ('TIER_1K', 'TIER_100K', 'TIER_UNLIMITED')
+
+// Deterministic A/B split for mass send
+const variant = stableVariant(contact.id, { salt: campaign.id });
+
+// 24h customer-service window check before allowing free-form sends
+if (isInWindow(conversation.lastInboundAt)) {
+  await meta.messaging.sendText({ ... });
+} else {
+  await meta.messaging.sendTemplate({ ... });
+}
+```
+
+### Multi-tenant pattern
+
+```javascript
+// 1. Persist per tenant in your DB:
+//    accessToken (encrypted), phoneNumberId, businessAccountId, verifyToken
+
+// 2. Singleton provider:
+const meta = new MetaCloudApiProvider({ apiVersion: 'v22.0', appSecret });
+
+// 3. Resolve creds per request:
+const creds = await db.loadCredsForTenant(tenantId);
+await meta.messaging.sendTemplate({
+  accessToken: creds.accessToken,
+  phoneNumberId: creds.phoneNumberId,
+  to, templateName, language, components
+});
+
+// 4. In webhook handler, route by event.accountId (= phoneNumberId):
+for (const event of parseCloudApiWebhook(req.body)) {
+  const tenant = await db.findTenantByPhoneNumberId(event.accountId);
+  if (!tenant) continue;
+  emitter.emit(event, { tenant });
+}
+```
+
+### Verifying credentials at setup
+
+```javascript
+const info = await meta.account.verifyConnection({
+  accessToken, phoneNumberId
+});
+// Throws MetaApiError if creds are bad. Otherwise:
+// => { ok: true, id, displayPhoneNumber, verifiedName, qualityRating, tier }
 ```
 
 ---

@@ -15,6 +15,10 @@ EventTypes.MESSAGE_READ         // Message was read
 EventTypes.MESSAGE_EDITED       // Message was edited
 EventTypes.MESSAGE_DELETED      // Message was deleted
 EventTypes.MESSAGE_REACTION     // Reaction added/removed
+EventTypes.MESSAGE_FAILED       // Send failed (errors[] in metadata)  -- v1.10.0+
+
+// Template lifecycle (provider-specific, e.g. Meta Cloud API)
+EventTypes.TEMPLATE_STATUS_CHANGED  // v1.10.0+
 
 // Relation events
 EventTypes.RELATION_CREATED     // New connection/follow
@@ -127,6 +131,37 @@ fields:
 
 The original channel is preserved in `event.metadata.originalEvent`, so you
 can branch on it when the normalized type is `UNKNOWN`.
+
+### Meta Cloud API (`provider: 'cloud-api'`, `providerType: 'WHATSAPP'`)
+
+The Cloud API parser returns an **array** of events per webhook POST (Meta
+batches up to ~100 events per call). Refinement table:
+
+| Webhook field | Refined by | Normalized `type` |
+|---|---|---|
+| `messages[]` (any inbound type) | — | `MESSAGE_RECEIVED` |
+| `statuses[].status === 'sent'` | — | `MESSAGE_SENT` |
+| `statuses[].status === 'delivered'` | — | `MESSAGE_DELIVERED` |
+| `statuses[].status === 'read'` | — | `MESSAGE_READ` |
+| `statuses[].status === 'failed'` | — | `MESSAGE_FAILED` |
+| change-level `errors[]` | — | `MESSAGE_FAILED` |
+| `field === 'message_template_status_update'` | — | `TEMPLATE_STATUS_CHANGED` |
+| `field === 'account_update'` (and quality/name updates) | — | `ACCOUNT_STATUS_CHANGED` |
+| Other fields | — | `UNKNOWN` (with `metadata.originalEvent`) |
+
+Inbound message metadata preserves Meta's nested data (interactive payload,
+context for replies, button payload, reaction, location, errors). See
+`packages/core/src/providers/cloud-api/webhooks.js` for the full builder.
+
+A handler that filters by both providers (Uazapi + Cloud API) is the canonical
+"any WhatsApp" handler:
+
+```js
+emitter.on(EventTypes.MESSAGE_RECEIVED, (event) => {
+  if (event.providerType !== ProviderTypes.WHATSAPP) return;
+  // event.provider tells you 'uazapi' vs 'cloud-api'
+});
+```
 
 ### Webchat (`provider: 'webchat'`, `providerType: 'WEBCHAT'`)
 
