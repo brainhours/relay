@@ -102,6 +102,50 @@ ProviderTypes.EMAIL
 ProviderTypes.SMS
 ```
 
+## Provider-specific event mappings
+
+### Uazapi (`provider: 'uazapi'`, `providerType: 'WHATSAPP'`)
+
+The Uazapi `event` channel is broad. The parser refines it using payload
+fields:
+
+| Uazapi `event` | Refined by | Normalized `type` |
+|---|---|---|
+| `messages` | `data.fromMe` | `MESSAGE_SENT` (true) / `MESSAGE_RECEIVED` (false) |
+| `messages_update` | `data.reaction` | `MESSAGE_REACTION` |
+| `messages_update` | `data.edited` | `MESSAGE_EDITED` |
+| `messages_update` | `data.deleted` or `status === 'Deleted'` | `MESSAGE_DELETED` |
+| `messages_update` | `data.status === 'Read'` | `MESSAGE_READ` |
+| `messages_update` | `data.status === 'Delivered'` | `MESSAGE_DELIVERED` |
+| `connection` | `data.connected === true` | `ACCOUNT_CONNECTED` |
+| `connection` | `data.connected === false` | `ACCOUNT_DISCONNECTED` |
+| `connection` | otherwise | `ACCOUNT_STATUS_CHANGED` |
+| `newsletter_messages` | — | `MESSAGE_RECEIVED` |
+| `contacts` | — | `RELATION_CREATED` |
+| `presence`, `groups`, `chats`, `call`, `labels`, `blocks`, `sender`, `chat_labels`, `history` | — | `UNKNOWN` |
+
+The original channel is preserved in `event.metadata.originalEvent`, so you
+can branch on it when the normalized type is `UNKNOWN`.
+
+### Unipile (`provider: 'unipile'`)
+
+Unipile delivers events with the type as the JSON key, e.g.
+`{ "MessageReceived": { ... } }`. The parser extracts the key and maps it:
+
+| Unipile key | Normalized `type` |
+|---|---|
+| `MessageReceived` | `MESSAGE_RECEIVED` |
+| `MessageSent` | `MESSAGE_SENT` |
+| `MessageDelivered` | `MESSAGE_DELIVERED` |
+| `MessageRead` | `MESSAGE_READ` |
+| `MessageEdited` | `MESSAGE_EDITED` |
+| `MessageDeleted` | `MESSAGE_DELETED` |
+| `MessageReaction` | `MESSAGE_REACTION` |
+| `NewRelation` / `RelationCreated` | `RELATION_CREATED` |
+| `AccountStatus` | `ACCOUNT_STATUS_CHANGED` |
+| `AccountCreated` | `ACCOUNT_CONNECTED` |
+| `AccountDeleted` | `ACCOUNT_DISCONNECTED` |
+
 ## Event Emitter
 
 Use `MessagingEventEmitter` for event-driven handling:

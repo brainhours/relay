@@ -16,7 +16,7 @@
 
 ## Features
 
-- **Multi-provider support** - Unipile, Twilio, Uazapi (coming soon)
+- **Multi-provider support** - Unipile (LinkedIn / WhatsApp / Email / …) and Uazapi (WhatsApp BR)
 - **Normalized events** - Consistent event format across all messaging providers
 - **Webhook handling** - Built-in parsing, validation, and queue management
 - **Channel agnostic** - LinkedIn, WhatsApp, Instagram, Telegram, SMS, Email
@@ -29,7 +29,7 @@
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [@guilhermegoulart1/relay-core](./packages/core) | 1.2.1 | Core messaging integrations |
+| [@guilhermegoulart1/relay-core](./packages/core) | 1.8.0 | Core messaging integrations (Unipile + Uazapi) |
 
 ---
 
@@ -97,11 +97,47 @@ app.post('/webhooks/unipile', (req, res) => {
 |---------|----------|--------|
 | LinkedIn | Unipile | Stable |
 | WhatsApp | Unipile | Stable |
+| WhatsApp (BR API) | Uazapi | Stable (v1.8.0+) |
 | Instagram | Unipile | Stable |
 | Telegram | Unipile | Stable |
 | Messenger | Unipile | Stable |
 | Email | Unipile | Stable |
 | SMS | Twilio | Coming Soon |
+
+### Uazapi (WhatsApp) quick start
+
+```javascript
+const { UazapiProvider, parseWebhook } = require('@guilhermegoulart1/relay-core');
+
+// Multi-server cluster with heterogeneous capacities (or pass a single
+// { baseUrl, adminToken } for a single server)
+const uazapi = new UazapiProvider({
+  servers: [
+    { id: 'plano-pequeno', baseUrl: 'https://srv1.uazapi.com', adminToken: '...', capacity: 2 },
+    { id: 'plano-grande',  baseUrl: 'https://srv2.uazapi.com', adminToken: '...', capacity: 10 }
+  ],
+  selectionStrategy: 'weighted-round-robin',
+  getServerLoad: async (id) => db.instances.count({ where: { server_id: id } })
+});
+
+// Provision a new instance: pool picks a server respecting capacity
+const created = await uazapi.instance.create({ name: 'tenant-acme' });
+// Returns { id, token, serverId, serverUrl, ... } - persist these in your DB
+
+// Webhooks
+await uazapi.webhooks.set({
+  token: created.token, serverId: created.serverId,
+  url: 'https://app.com/webhooks/uazapi',
+  events: ['messages', 'messages_update', 'connection']
+});
+
+app.post('/webhooks/uazapi', (req, res) => {
+  const event = parseWebhook('uazapi', req.body);
+  // event.provider === 'uazapi', event.providerType === 'WHATSAPP'
+  // event.type ∈ MESSAGE_RECEIVED|MESSAGE_SENT|MESSAGE_READ|... (refined per data)
+  res.json({ ok: true });
+});
+```
 
 ---
 

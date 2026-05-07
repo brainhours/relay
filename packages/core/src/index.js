@@ -33,6 +33,7 @@
 const {
   BaseProvider,
   UnipileProvider,
+  UazapiProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature
@@ -47,6 +48,23 @@ const {
   UnipileJobsManager,
   REACTION_TYPES
 } = require('./providers/unipile');
+
+// Uazapi sub-modules (v1.8.0+)
+const {
+  UazapiServerPool,
+  UazapiInstanceManager,
+  UazapiMessagingManager,
+  UazapiChatsManager,
+  UazapiContactsManager,
+  UazapiMessagesManager,
+  UazapiGroupsManager,
+  UazapiProfileManager,
+  UazapiWebhookManager,
+  parseUazapiWebhook,
+  validateUazapiSignature,
+  generateWebhookJobId: generateUazapiWebhookJobId,
+  UAZAPI_EVENT_MAP
+} = require('./providers/uazapi');
 
 // Events
 const {
@@ -83,6 +101,7 @@ module.exports = {
   // Providers
   BaseProvider,
   UnipileProvider,
+  UazapiProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,
@@ -94,6 +113,21 @@ module.exports = {
   UnipileCompanyManager,
   UnipileJobsManager,
   REACTION_TYPES,
+
+  // Uazapi managers + utilities (v1.8.0+)
+  UazapiServerPool,
+  UazapiInstanceManager,
+  UazapiMessagingManager,
+  UazapiChatsManager,
+  UazapiContactsManager,
+  UazapiMessagesManager,
+  UazapiGroupsManager,
+  UazapiProfileManager,
+  UazapiWebhookManager,
+  parseUazapiWebhook,
+  validateUazapiSignature,
+  generateUazapiWebhookJobId,
+  UAZAPI_EVENT_MAP,
 
   // Events
   EventTypes,

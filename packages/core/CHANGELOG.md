@@ -5,6 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-05-06
+
+### Added
+
+- **Uazapi provider** – first-class WhatsApp support via the
+  [Uazapi](https://docs.uazapi.com/) API (uazapiGO 2.1.0), alongside the
+  existing Unipile provider.
+
+  Multi-server architecture: the provider holds a configurable cluster of
+  Uazapi subscriptions (each with its own `baseUrl`, `adminToken`, and
+  `capacity`). When you create a new instance the pool picks a server using
+  one of five built-in strategies (or a custom function), so you can spread
+  WhatsApp instances across multiple Uazapi accounts with heterogeneous
+  capacities.
+
+  - Selection strategies:
+    - `pinned` – always one server (default for single-server pools)
+    - `round-robin` – cycles through enabled, non-full servers
+    - `weighted-round-robin` – Smooth WRR (Nginx-style); proportional to weight/capacity
+    - `least-loaded` – picks the server with the lowest `load/capacity` ratio
+    - `fill-first` – fills one server up to capacity before moving on
+    - `function(eligible, ctx) => server` – custom logic
+  - Runtime reconfiguration: `pool.add()`, `pool.update(id, patch)`,
+    `pool.remove(id)`, `pool.enable(id)`, `pool.disable(id)`, `pool.stats()`.
+  - Per-call override: `instance.create({ serverId })` forces a specific
+    server; `instance.create({ strategy })` overrides the strategy.
+
+  Managers shipped:
+    - `instance` – create / list / connect (QR or pairing code) / status /
+      disconnect / delete / setPresence
+    - `messaging` – sendText, sendMedia, sendContact, sendLocation, sendMenu
+      (button/list/poll/carousel), react, edit, delete, markRead,
+      sendPresence, pin, download
+    - `chats` – find (with `wa_*` / `lead_*` filters), archive, mute, pin,
+      read, details, check, delete
+    - `contacts` – list, listPaginated, add, remove
+    - `messages` – find, download, historySync
+    - `groups` – create, info, list, listPaginated, leave, updateParticipants,
+      updateName, updateDescription
+    - `profile` – updateName, updateImage
+    - `webhooks` – get, set, addOne, update, delete, ensure (idempotent),
+      getErrors. Defaults to `excludeMessages: ['wasSentByApi']` to prevent
+      webhook loops.
+
+  Webhook normalization:
+    - `parseUazapiWebhook(rawPayload)` returns a `NormalizedEvent` with
+      `provider: 'uazapi'`, `providerType: ProviderTypes.WHATSAPP`, and types
+      refined per channel: `messages` → `MESSAGE_RECEIVED`/`MESSAGE_SENT`
+      (via `data.fromMe`); `messages_update` → `MESSAGE_READ`,
+      `MESSAGE_DELIVERED`, `MESSAGE_EDITED`, `MESSAGE_DELETED`,
+      `MESSAGE_REACTION` (via `data.status`/`edited`/`deleted`/`reaction`);
+      `connection` → `ACCOUNT_CONNECTED`/`ACCOUNT_DISCONNECTED` (via
+      `data.connected`).
+    - `parseWebhook('uazapi', payload)` and `validateWebhookSignature('uazapi', ...)`
+      registered in the provider factory.
+
+  Wiring:
+    - `UazapiProvider` exported from the package root and from
+      `@guilhermegoulart1/relay-core/providers/uazapi`.
+    - `createProvider('uazapi', config)` works in the factory.
+
+  See [docs/providers.md](../../docs/providers.md) and
+  [examples/uazapi-webhook](../../examples/uazapi-webhook) for full setup.
+
 ## [1.7.11] - 2026-05-02
 
 ### Fixed

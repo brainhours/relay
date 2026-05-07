@@ -154,6 +154,66 @@ Unipile provides unified access to multiple messaging platforms:
 | Messenger | Stable | Messages |
 | Email | Stable | IMAP/SMTP |
 
+### Uazapi Provider (v1.8.0+)
+
+[Uazapi](https://docs.uazapi.com/) is a Brazilian WhatsApp API. The Uazapi
+provider supports a **cluster of subscriptions** with heterogeneous capacities
+and pluggable selection strategies, so you can spread WhatsApp instances
+across multiple Uazapi servers automatically.
+
+```javascript
+const { UazapiProvider, parseWebhook } = require('@guilhermegoulart1/relay-core');
+
+// Single-server (simplest)
+const uazapi = new UazapiProvider({
+  baseUrl: process.env.UAZ_BASE_URL,        // e.g. 'https://free.uazapi.com'
+  adminToken: process.env.UAZ_ADMIN_TOKEN
+});
+
+// Or multi-server with heterogeneous capacities
+const uazapi = new UazapiProvider({
+  servers: [
+    { id: 'plano-pequeno', baseUrl: 'https://srv1.uazapi.com', adminToken: '...', capacity: 2 },
+    { id: 'plano-medio',   baseUrl: 'https://srv2.uazapi.com', adminToken: '...', capacity: 4 },
+    { id: 'plano-grande',  baseUrl: 'https://srv3.uazapi.com', adminToken: '...', capacity: 10 }
+  ],
+  selectionStrategy: 'weighted-round-robin',  // 2:4:10 distribution
+  getServerLoad: async (serverId) => db.instances.count({ where: { server_id: serverId } })
+});
+
+// Provision a new instance + connect
+const created = await uazapi.instance.create({ name: 'tenant-acme' });
+// => { id, token, serverId, serverUrl, ... }  (persist these in your DB)
+
+await uazapi.webhooks.set({
+  token: created.token,
+  serverId: created.serverId,
+  url: `${process.env.PUBLIC_URL}/webhooks/uazapi`,
+  events: ['messages', 'messages_update', 'connection']
+});
+
+const conn = await uazapi.instance.connect({
+  token: created.token,
+  serverId: created.serverId
+});
+// conn.instance.qrcode is a base64 PNG -> show to the user
+
+// Send a message later
+await uazapi.messaging.sendText({
+  token: created.token,
+  serverId: created.serverId,
+  number: '5511999999999',
+  text: 'Olá!'
+});
+```
+
+Selection strategies: `pinned`, `round-robin`, `weighted-round-robin`,
+`least-loaded`, `fill-first`, or a custom function. The pool can be
+reconfigured at runtime — `pool.add()`, `pool.update(id, patch)`,
+`pool.disable(id)`, `pool.enable(id)`, `pool.remove(id)`, `pool.stats()`.
+
+See [docs/providers.md](../../docs/providers.md) for the full reference.
+
 ---
 
 ## API Reference

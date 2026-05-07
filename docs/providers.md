@@ -7,6 +7,7 @@ Relay supports multiple messaging providers through a unified interface.
 | Provider | Status | Channels |
 |----------|--------|----------|
 | Unipile | Stable | LinkedIn, WhatsApp, Instagram, Telegram, Messenger, Email |
+| Uazapi | Stable (v1.8.0+) | WhatsApp (Brazilian API, multi-instance) |
 | Twilio | Coming Soon | SMS, WhatsApp, Voice |
 
 ## Unipile Provider
@@ -294,6 +295,221 @@ const accountIds = await provider.webhooks.getAccountIds(
 
 // Delete webhook
 await provider.webhooks.delete('webhook_id');
+```
+
+---
+
+## Uazapi Provider
+
+[Uazapi](https://docs.uazapi.com/) is a Brazilian WhatsApp API. Each Uazapi
+**subscription** is an independent server (with its own subdomain and
+`adminToken`) that can host multiple WhatsApp instances. The provider models
+this directly: it owns a **pool of servers** with heterogeneous capacities and
+chooses which server hosts each new instance using a pluggable strategy.
+
+The Relay stays stateless — your application persists, per tenant, the
+`(serverId, instanceId, instanceToken)` returned by `instance.create()` and
+passes them back on every subsequent call.
+
+### Configuration
+
+```javascript
+const { UazapiProvider } = require('@guilhermegoulart1/relay-core');
+
+// Single-server (simplest form)
+const uazapi = new UazapiProvider({
+  baseUrl: 'https://free.uazapi.com',
+  adminToken: process.env.UAZ_ADMIN_TOKEN,
+  timeout: 15000
+});
+
+// Multi-server cluster
+const uazapi = new UazapiProvider({
+  servers: [
+    { id: 'plano-pequeno', baseUrl: 'https://srv1.uazapi.com', adminToken: '...', capacity: 2 },
+    { id: 'plano-medio',   baseUrl: 'https://srv2.uazapi.com', adminToken: '...', capacity: 4 },
+    { id: 'plano-grande',  baseUrl: 'https://srv3.uazapi.com', adminToken: '...', capacity: 10 }
+  ],
+  selectionStrategy: 'weighted-round-robin',
+  getServerLoad: async (serverId) =>
+    db.instances.count({ where: { server_id: serverId, deleted: false } })
+});
+```
+
+#### Server fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `id` | string | — | **Required.** Stable identifier you choose. |
+| `baseUrl` | string | — | **Required.** e.g. `https://srv1.uazapi.com`. |
+| `adminToken` | string | — | Required for admin endpoints (`instance.create`, `instance.listAll`). |
+| `capacity` | number | `Infinity` | Max instances. Used by load-aware strategies and as default `weight`. |
+| `weight` | number | `capacity` | Weight for `weighted-round-robin`. |
+| `enabled` | boolean | `true` | When `false`, excluded from `pickForCreate` but still serves existing instances via `resolve()`. |
+| `tags` | string[] | `[]` | Free-form tags for custom strategies. |
+
+#### Selection strategies
+
+| Strategy | When to use | Behavior |
+|----------|-------------|----------|
+| `pinned` | One server (default for single-server pools) | Always returns the first enabled server. |
+| `round-robin` | Even distribution | Cycles through enabled, non-full servers. |
+| `weighted-round-robin` | Heterogeneous capacities | Smooth WRR (Nginx-style). A server with `weight=10` receives 5× more than `weight=2`. |
+| `least-loaded` | Dynamic balancing | Requires `getServerLoad`. Picks the lowest `load/capacity` ratio. |
+| `fill-first` | Fill cheap servers first | Fills one server up to capacity before moving on. Requires `getServerLoad` for proper effect. |
+| `function` | Custom logic | `(eligibleServers, ctx) => server`. `ctx` includes `currentLoads` when `getServerLoad` is available, plus `name` from `instance.create({ name })`. |
+
+The default strategy is `pinned` for single-server pools and `round-robin`
+for multi-server pools. Servers with `load >= capacity` (when `getServerLoad`
+is provided) and `enabled: false` servers are filtered out automatically.
+
+You can also override the strategy per-call:
+
+```javascript
+await uazapi.instance.create({
+  name: 'tenant-acme',
+  serverId: 'plano-grande'              // force a specific server
+});
+
+await uazapi.instance.create({
+  name: 'tenant-acme',
+  strategy: 'least-loaded'              // override default for this call
+});
+```
+
+#### Runtime reconfiguration
+
+The pool can be modified without restarting:
+
+```javascript
+uazapi.pool.add({ id: 'srv4', baseUrl: '...', adminToken: '...', capacity: 5 });
+uazapi.pool.update('plano-pequeno', { capacity: 5 });   // upgraded plan
+uazapi.pool.disable('plano-medio');                      // temporary maintenance
+uazapi.pool.enable('plano-medio');
+uazapi.pool.remove('plano-pequeno');                     // subscription cancelled
+await uazapi.pool.stats();                               // [{ id, capacity, load, enabled, ... }]
+```
+
+`disable()` removes a server from `pickForCreate` but keeps it usable for
+operations on existing instances (so a maintenance window doesn't break
+already-provisioned tenants).
+
+### Authentication
+
+| Header | Used for | Source |
+|--------|----------|--------|
+| `admintoken` | Admin endpoints (`/instance/create`, `/instance/all`) | `server.adminToken` |
+| `token` | All instance-scoped endpoints | Per-call `token` parameter (the instance token returned by `instance.create()`) |
+
+A single `UazapiProvider` instance handles **all** servers and **all**
+instances. You don't need to instantiate one provider per tenant.
+
+### Available managers
+
+| Manager | Access | Description |
+|---------|--------|-------------|
+| `instance` | `uazapi.instance` | Create / connect (QR or pairing code) / status / disconnect / delete / list / set presence |
+| `messaging` | `uazapi.messaging` | sendText, sendMedia, sendContact, sendLocation, sendMenu, react, edit, delete, markRead, sendPresence, pin, download |
+| `chats` | `uazapi.chats` | find (with `wa_*` / `lead_*` filters), archive, mute, pin, read, details, check, delete |
+| `contacts` | `uazapi.contacts` | list, listPaginated, add, remove |
+| `messages` | `uazapi.messages` | find, download, historySync |
+| `groups` | `uazapi.groups` | create, info, list, listPaginated, leave, updateParticipants, updateName, updateDescription |
+| `profile` | `uazapi.profile` | updateName, updateImage |
+| `webhooks` | `uazapi.webhooks` | get, set, addOne, update, delete, ensure (idempotent), getErrors |
+
+### Instance lifecycle
+
+```javascript
+// 1. Create instance (the pool picks a server)
+const created = await uazapi.instance.create({ name: 'tenant-acme' });
+// => { id, token, serverId, serverUrl, ...rest }
+
+// 2. Configure webhook (excludeMessages: ['wasSentByApi'] is the default)
+await uazapi.webhooks.set({
+  token: created.token, serverId: created.serverId,
+  url: 'https://app.com/webhooks/uazapi',
+  events: ['messages', 'messages_update', 'connection']
+});
+
+// 3. Connect (QR by default, or pass `phone` for a pairing code)
+const conn = await uazapi.instance.connect({
+  token: created.token, serverId: created.serverId
+});
+// conn.instance.qrcode is a base64 PNG
+
+// 4. Check status
+const status = await uazapi.instance.getStatus({
+  token: created.token, serverId: created.serverId
+});
+
+// 5. Send a message
+await uazapi.messaging.sendText({
+  token: created.token, serverId: created.serverId,
+  number: '5511999999999', text: 'Olá!'
+});
+```
+
+### Webhook payload
+
+Uazapi POSTs `{ event, instance, data }` to your webhook URL. Use
+`parseWebhook('uazapi', body)` to normalize:
+
+```javascript
+const { parseWebhook, EventTypes } = require('@guilhermegoulart1/relay-core');
+
+app.post('/webhooks/uazapi', (req, res) => {
+  const event = parseWebhook('uazapi', req.body);
+  // {
+  //   type:        EventTypes.MESSAGE_RECEIVED | MESSAGE_SENT | MESSAGE_READ | ...,
+  //   provider:    'uazapi',
+  //   providerType: 'WHATSAPP',
+  //   accountId:   '<instance-id>',
+  //   chatId, messageId, senderId, senderName, content, timestamp, attachments,
+  //   metadata: {
+  //     originalEvent, isGroup, fromMe, messageType, status, wasSentByApi,
+  //     quoted, reaction, edited, senderShort, source,
+  //     connected, lastDisconnect, lastDisconnectReason
+  //   }
+  // }
+  res.json({ ok: true });
+});
+```
+
+#### Event channel → normalized type
+
+| Uazapi `event` | Refined by | Normalized `type` |
+|---|---|---|
+| `messages` | `data.fromMe` | `MESSAGE_SENT` (true) / `MESSAGE_RECEIVED` (false) |
+| `messages_update` | `data.reaction` | `MESSAGE_REACTION` |
+| `messages_update` | `data.edited` | `MESSAGE_EDITED` |
+| `messages_update` | `data.deleted` or `status === 'Deleted'` | `MESSAGE_DELETED` |
+| `messages_update` | `data.status === 'Read'` | `MESSAGE_READ` |
+| `messages_update` | `data.status === 'Delivered'` | `MESSAGE_DELIVERED` |
+| `connection` | `data.connected === true` | `ACCOUNT_CONNECTED` |
+| `connection` | `data.connected === false` | `ACCOUNT_DISCONNECTED` |
+| `connection` | otherwise | `ACCOUNT_STATUS_CHANGED` |
+| `newsletter_messages` | — | `MESSAGE_RECEIVED` |
+| `contacts` | — | `RELATION_CREATED` (closest match) |
+| Others (`presence`, `groups`, `chats`, `call`, ...) | — | `UNKNOWN` |
+
+> **Webhook signature.** Uazapi v2.1.0 does not document an HMAC signature
+> header. The recommended hardening is a per-instance secret embedded in
+> the webhook URL (e.g. `https://app.com/webhooks/uazapi?secret=<random>`),
+> verified in your route handler. `validateWebhookSignature('uazapi', ...)`
+> always returns `true` until upstream adds a scheme.
+
+### Multi-instance loop prevention
+
+Uazapi's `excludeMessages: ['wasSentByApi']` filter is applied automatically
+by `webhooks.set()`. This prevents your own outbound API messages from
+re-entering as inbound webhooks. To opt out, pass an explicit empty array:
+
+```javascript
+await uazapi.webhooks.set({
+  token, serverId, url,
+  events: ['messages', 'messages_update'],
+  excludeMessages: []           // get every message back
+});
 ```
 
 ---

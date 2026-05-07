@@ -9,20 +9,25 @@ const {
   validateUnipileSignature,
   generateWebhookJobId
 } = require('./unipile/webhooks');
+const { UazapiProvider } = require('./uazapi/client');
+const {
+  parseUazapiWebhook,
+  validateUazapiSignature
+} = require('./uazapi/webhooks');
 
 /**
  * Available providers
  */
 const providers = {
-  unipile: UnipileProvider
+  unipile: UnipileProvider,
+  uazapi: UazapiProvider
   // twilio: TwilioProvider, // Coming soon
-  // uazapi: UazapiProvider  // Coming soon
 };
 
 /**
  * Create a provider instance
  *
- * @param {string} providerName - Provider name (e.g., 'unipile')
+ * @param {string} providerName - Provider name (e.g., 'unipile', 'uazapi')
  * @param {Object} config - Provider configuration
  * @returns {BaseProvider}
  */
@@ -47,6 +52,8 @@ function parseWebhook(providerName, rawPayload) {
   switch (providerName.toLowerCase()) {
     case 'unipile':
       return parseUnipileWebhook(rawPayload);
+    case 'uazapi':
+      return parseUazapiWebhook(rawPayload);
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -65,6 +72,8 @@ function validateWebhookSignature(providerName, payload, signature, secret) {
   switch (providerName.toLowerCase()) {
     case 'unipile':
       return validateUnipileSignature(payload, signature, secret);
+    case 'uazapi':
+      return validateUazapiSignature(payload, signature, secret);
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -73,6 +82,7 @@ function validateWebhookSignature(providerName, payload, signature, secret) {
 module.exports = {
   BaseProvider,
   UnipileProvider,
+  UazapiProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,
