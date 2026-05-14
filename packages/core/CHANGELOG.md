@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-05-14
+
+### Added
+
+- **Uazapi: native support for uazapiGO / wuzapi-based servers** in
+  `parseUazapiWebhook`. The hosted product at `uazapi.com` (and any wuzapi
+  fork) ships a different webhook payload shape from the classic v2.1 spec
+  the parser previously assumed:
+
+  ```json
+  {
+    "BaseUrl": "https://<sub>.uazapi.com",
+    "EventType": "messages" | "messages_update" | "connection",
+    "token": "<instance-token>",
+    "owner": "<phone>",
+    "instanceName": "...",
+    "type": "Message" | "ReadReceipt" | ...,
+    "event": { ... },                  // for messages_update / connection
+    "message": { ... }, "chat": { ... } // for messages
+  }
+  ```
+
+  Previously, `parseUazapiWebhook` saw `event` as an object (not a channel
+  string) and dropped the event with `type=UNKNOWN`, silently breaking
+  inbound message delivery on uazapiGO deployments.
+
+  The parser now auto-detects the format from the presence of `BaseUrl` +
+  `EventType` at the top level and dispatches to a dedicated uazapiGO branch.
+  Classic v2.1 payloads keep their existing behavior — same call site, no
+  consumer changes required.
+
+  uazapiGO events covered: `messages` (inbound + outbound), `messages_update`
+  (Read / Delivered / Played / Edited / Deleted / Reaction), `connection`
+  (connect / disconnect). Unknown channels return a typed `UNKNOWN` event
+  preserving the raw payload for debugging.
+
+  Each NormalizedEvent's `metadata.schema` is now `'classic'` or `'uazapiGO'`
+  so consumers can tell which branch parsed the event when needed.
+
+### Changed
+
+- `parseUazapiWebhook` is now defensive about timestamps in both branches —
+  accepts numeric seconds (10 digits), numeric milliseconds (13 digits), and
+  ISO strings, falling back to `new Date()` only when nothing parses.
+
 ## [1.10.1] - 2026-05-07
 
 ### Fixed
