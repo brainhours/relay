@@ -611,12 +611,13 @@ class UnipileLinkedInManager {
    * @param {string} [params.first_name] - First name filter
    * @param {string} [params.last_name] - Last name filter
    * @param {string|string[]} [params.location] - Location filter (ID or array)
-   * @param {string|string[]} [params.industry] - Industry filter
-   * @param {string|string[]} [params.job_title] - Job title filter
+   * @param {string|string[]} [params.industry] - Industry filter (numeric IDs)
+   * @param {Object} [params.advanced_keywords] - Classic free-text keyword filters: { first_name, last_name, title, company, school }.
+   * @param {Array} [params.job_title] - Job title filter. Accepts ids ("70"), labels ("Marketing Specialist") or objects ({ id, title }). Classic has no structured job-title filter, so labels are folded into `advanced_keywords.title` (free text, OR-joined); Sales Navigator / Recruiter emit `role: { include: [id] }`.
    * @param {string|string[]} [params.companies] - Current company IDs. Emitted as `company: ["id"]` for `api:'classic'` and as `company: { include: [numericId] }` for Sales Navigator / Recruiter.
    * @param {string|string[]} [params.past_companies] - Past company IDs. Same format rules as `companies`.
    * @param {string|string[]} [params.school] - School/university filter
-   * @param {string|string[]} [params.skills] - Skills filter
+   * @param {string|string[]} [params.skills] - Skills filter. Sales Navigator / Recruiter only — dropped on Classic (fold skill terms into `keywords` instead).
    * @param {number|number[]} [params.network_distance] - Network distance: 1, 2, 3 or array [1,2]
    * @param {string} [params.tenure] - Years at current company
    * @param {string} [params.years_experience] - Total years of experience
@@ -677,51 +678,126 @@ class UnipileLinkedInManager {
     // Determine API type up-front so we can emit the right schema for
     // fields whose format differs between Classic and Sales Navigator.
     const apiType = bodyParams.api || 'classic';
+    const isClassic = apiType === 'classic';
 
-    // Clean empty parameters and normalize arrays
+    // Helpers to interpret job_title / skill items. Callers may pass either a
+    // bare id ("70"), a label ("Marketing Specialist"), or an object
+    // ({ id, title }). Classic consumes the *label* (free text); Sales
+    // Navigator / Recruiter consume the *id* (structured taxonomy).
+    const toArray = (v) => (Array.isArray(v) ? v : [v]);
+    const itemLabel = (item) => {
+      if (item === null || item === undefined) return null;
+      if (typeof item === 'object') {
+        const label = (item.title || item.label || item.name || '').toString().trim();
+        return label || null;
+      }
+      const s = String(item).trim();
+      // A bare numeric id carries no human-readable label for Classic.
+      return s && !/^\d+$/.test(s) ? s : null;
+    };
+    const itemId = (item) => {
+      if (item === null || item === undefined) return null;
+      const raw = typeof item === 'object' ? (item.id ?? item.value) : item;
+      const n = typeof raw === 'string' ? parseInt(raw, 10) : raw;
+      return typeof n === 'number' && !isNaN(n) ? n : null;
+    };
+
+    // advanced_keywords (Classic only) accumulator. May be seeded by the caller
+    // and further augmented by the Classic job_title -> title mapping below.
+    const advancedKeywords = {};
+    if (bodyParams.advanced_keywords && typeof bodyParams.advanced_keywords === 'object') {
+      for (const [k, v] of Object.entries(bodyParams.advanced_keywords)) {
+        if (typeof v === 'string' && v.trim()) advancedKeywords[k] = v.trim();
+      }
+    }
+
+    // Plain array fields valid on every API (Classic included).
+    const arrayFields = [
+      'location', 'industry', 'school', 'network_distance',
+      'profile_language', 'service', 'connections_of',
+      'followers_of', 'open_to'
+    ];
+
+    // Clean empty parameters and normalize per-API schema.
     const cleanBody = {};
     Object.entries(bodyParams).forEach(([key, value]) => {
-      if (value !== '' && value !== undefined && value !== null) {
-        // Fields that should always be arrays
-        const arrayFields = [
-          'location', 'industry', 'job_title',
-          'school', 'skills', 'network_distance'
-        ];
+      if (value === '' || value === undefined || value === null) return;
+      if (key === 'advanced_keywords') return; // merged separately below
 
-        // Companies/past_companies: format differs per API
-        //  - Classic: array of string IDs (pattern ^\d+$)
-        //  - Sales Navigator / Recruiter: { include: [numericId] }
-        if (key === 'companies' || key === 'past_companies') {
-          const arrayValue = Array.isArray(value) ? value : [value];
-          const uniKey = key === 'companies' ? 'company' : 'past_company';
+      // Companies/past_companies: format differs per API
+      //  - Classic: array of string IDs (pattern ^\d+$)
+      //  - Sales Navigator / Recruiter: { include: [numericId] }
+      if (key === 'companies' || key === 'past_companies') {
+        const arrayValue = toArray(value);
+        const uniKey = key === 'companies' ? 'company' : 'past_company';
 
-          if (apiType === 'classic') {
-            const stringIds = arrayValue
-              .map(id => (id === null || id === undefined) ? null : String(id).trim())
-              .filter(id => id && /^\d+$/.test(id));
-            if (stringIds.length > 0) {
-              cleanBody[uniKey] = stringIds;
-            }
-          } else {
-            const numericIds = arrayValue
-              .map(id => typeof id === 'string' ? parseInt(id, 10) : id)
-              .filter(id => typeof id === 'number' && !isNaN(id));
-            if (numericIds.length > 0) {
-              cleanBody[uniKey] = { include: numericIds };
-            }
+        if (isClassic) {
+          const stringIds = arrayValue
+            .map(id => (id === null || id === undefined) ? null : String(id).trim())
+            .filter(id => id && /^\d+$/.test(id));
+          if (stringIds.length > 0) {
+            cleanBody[uniKey] = stringIds;
           }
-        } else if (arrayFields.includes(key)) {
-          const arrayValue = Array.isArray(value) ? value : [value];
-          if (arrayValue.length > 0) {
-            cleanBody[key] = arrayValue;
+        } else {
+          const numericIds = arrayValue.map(itemId).filter(id => id !== null);
+          if (numericIds.length > 0) {
+            cleanBody[uniKey] = { include: numericIds };
           }
-        } else if (Array.isArray(value) && value.length > 0) {
-          cleanBody[key] = value;
-        } else if (!Array.isArray(value)) {
-          cleanBody[key] = value;
         }
+        return;
+      }
+
+      // Job title / role: Classic has NO structured job-title filter. Its only
+      // native equivalent is advanced_keywords.title (free text, supports the
+      // boolean "A OR B" syntax). Sales Navigator / Recruiter use `role` with a
+      // structured { include: [id] } shape against the JOB_TITLE taxonomy.
+      if (key === 'job_title' || key === 'role') {
+        const arr = toArray(value);
+        if (isClassic) {
+          const labels = arr.map(itemLabel).filter(Boolean);
+          if (labels.length) {
+            const joined = labels.join(' OR ');
+            advancedKeywords.title = advancedKeywords.title
+              ? `${advancedKeywords.title} OR ${joined}`
+              : joined;
+          }
+        } else {
+          const ids = arr.map(itemId).filter(id => id !== null);
+          if (ids.length) cleanBody.role = { include: ids };
+        }
+        return;
+      }
+
+      // Skills: Sales Navigator / Recruiter only. Classic has no skills filter,
+      // so it is dropped here (the caller can fold skill terms into `keywords`).
+      if (key === 'skills') {
+        if (isClassic) return;
+        const ids = toArray(value).map(itemId).filter(id => id !== null);
+        if (ids.length) cleanBody.skills = ids;
+        return;
+      }
+
+      // Tenure / years of experience: Sales Navigator only. Dropped on Classic.
+      if (key === 'tenure' || key === 'tenure_at_company' ||
+          key === 'tenure_at_role' || key === 'years_experience') {
+        if (isClassic) return;
+        cleanBody[key] = value;
+        return;
+      }
+
+      if (arrayFields.includes(key)) {
+        const arrayValue = toArray(value);
+        if (arrayValue.length > 0) cleanBody[key] = arrayValue;
+      } else if (Array.isArray(value)) {
+        if (value.length > 0) cleanBody[key] = value;
+      } else {
+        cleanBody[key] = value;
       }
     });
+
+    if (Object.keys(advancedKeywords).length > 0) {
+      cleanBody.advanced_keywords = advancedKeywords;
+    }
 
     // Set defaults if not provided
     if (!cleanBody.api) cleanBody.api = 'classic';

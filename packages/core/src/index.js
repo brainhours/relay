@@ -36,10 +36,24 @@ const {
   UazapiProvider,
   WebchatProvider,
   MetaCloudApiProvider,
+  WatiProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature
 } = require('./providers');
+
+// Wati (WhatsApp Business / BSP) sub-modules
+const {
+  WatiMessagingManager,
+  WatiContactsManager,
+  WatiConversationsManager,
+  WatiTemplatesManager,
+  parseWatiWebhook,
+  validateWatiSignature,
+  generateWebhookJobId: generateWatiWebhookJobId,
+  WATI_EVENT_MAP,
+  VALID_CHAT_STATUSES: WATI_VALID_CHAT_STATUSES
+} = require('./providers/wati');
 
 // Cloud API (Meta WhatsApp official) sub-modules (v1.10.0+)
 const {
@@ -138,9 +152,21 @@ module.exports = {
   UazapiProvider,
   WebchatProvider,
   MetaCloudApiProvider,
+  WatiProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,
+
+  // Wati (WhatsApp Business / BSP)
+  WatiMessagingManager,
+  WatiContactsManager,
+  WatiConversationsManager,
+  WatiTemplatesManager,
+  parseWatiWebhook,
+  validateWatiSignature,
+  generateWatiWebhookJobId,
+  WATI_EVENT_MAP,
+  WATI_VALID_CHAT_STATUSES,
 
   // Cloud API (Meta WhatsApp official) (v1.10.0+)
   MetaCloudApiMessagingManager,

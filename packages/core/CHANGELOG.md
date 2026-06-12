@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-06-12
+
+### Fixed
+
+- **Unipile: `linkedin.search` now emits the correct per-API schema for job
+  title, skills and tenure filters.** Previously these were forwarded verbatim
+  (e.g. `job_title: ["70"]`) on every API. LinkedIn's **Classic** people search
+  has no structured job-title/skills/tenure filter, so those were silently
+  ignored — a Classic search by "Marketing Specialist" returned unrelated
+  people. The search builder is now API-aware:
+
+  - **`job_title` / `role`** — accepts ids (`"70"`), labels
+    (`"Marketing Specialist"`) or objects (`{ id, title }`).
+    - Classic → folds the **labels** into `advanced_keywords.title`
+      (LinkedIn's native free-text title filter, OR-joined for multiple).
+    - Sales Navigator / Recruiter → emits `role: { include: [id] }` against
+      the JOB_TITLE taxonomy.
+  - **`skills`** — Sales Navigator / Recruiter only; dropped on Classic (fold
+    skill terms into `keywords` instead).
+  - **`tenure` / `years_experience`** — Sales Navigator only; dropped on
+    Classic.
+  - **`advanced_keywords`** is now a first-class passthrough
+    (`{ first_name, last_name, title, company, school }`) and merges with any
+    Classic `job_title` mapping.
+
+### Added
+
+- **Wati provider** (`@guilhermegoulart1/relay-core/providers/wati`): WhatsApp
+  Business / BSP integration — `WatiProvider`, messaging/contacts/conversations/
+  templates managers, `parseWatiWebhook`, `validateWatiSignature` and the
+  `wati` entry in the provider registry / `parseWebhook` / signature dispatch.
+
 ## [1.11.0] - 2026-05-14
 
 ### Added
