@@ -1,7 +1,7 @@
 {
   "name": "@guilhermegoulart1/relay-core",
-  "version": "1.17.1",
-  "description": "Core messaging integrations - Unipile, Uazapi (WhatsApp), Meta Cloud API (official WhatsApp), Wati (WhatsApp Business), Webchat and more",
+  "version": "1.18.0",
+  "description": "Core messaging integrations - Unipile, Uazapi (WhatsApp), Meta Cloud API (official WhatsApp), Wati (WhatsApp Business), Twilio (SMS/WhatsApp), Webchat and more",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "exports": {
@@ -23,6 +23,9 @@
     },
     "./providers/wati": {
       "require": "./src/providers/wati/index.js"
+    },
+    "./providers/twilio": {
+      "require": "./src/providers/twilio/index.js"
     },
     "./events": {
       "require": "./src/events/index.js"

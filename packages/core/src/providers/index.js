@@ -29,6 +29,11 @@ const {
   parseWatiWebhook,
   validateWatiSignature
 } = require('./wati/webhooks');
+const { TwilioProvider } = require('./twilio/client');
+const {
+  parseTwilioWebhook,
+  validateTwilioSignature
+} = require('./twilio/webhooks');
 
 /**
  * Available providers
@@ -38,8 +43,8 @@ const providers = {
   uazapi: UazapiProvider,
   webchat: WebchatProvider,
   'cloud-api': MetaCloudApiProvider,
-  wati: WatiProvider
-  // twilio: TwilioProvider, // Coming soon
+  wati: WatiProvider,
+  twilio: TwilioProvider
 };
 
 /**
@@ -78,6 +83,8 @@ function parseWebhook(providerName, rawPayload) {
       return parseCloudApiWebhook(rawPayload);
     case 'wati':
       return parseWatiWebhook(rawPayload);
+    case 'twilio':
+      return parseTwilioWebhook(rawPayload);
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -87,9 +94,12 @@ function parseWebhook(providerName, rawPayload) {
  * Validate a webhook signature
  *
  * @param {string} providerName - Provider name
- * @param {Object} payload - Webhook payload
+ * @param {Object} payload - Webhook payload. For most providers this is the raw
+ *   body; for `twilio` it must be `{ url, params }` (Twilio signs the request
+ *   URL + sorted POST params), so pass the full request URL and the
+ *   form-decoded body.
  * @param {string} signature - Signature header
- * @param {string} secret - Webhook secret
+ * @param {string} secret - Webhook secret (Twilio: the Auth Token)
  * @returns {boolean}
  */
 function validateWebhookSignature(providerName, payload, signature, secret) {
@@ -104,6 +114,13 @@ function validateWebhookSignature(providerName, payload, signature, secret) {
       return validateCloudApiSignature(payload, signature, secret);
     case 'wati':
       return validateWatiSignature(payload, signature, secret);
+    case 'twilio':
+      return validateTwilioSignature(
+        payload && payload.url,
+        payload && payload.params,
+        signature,
+        secret
+      );
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -116,6 +133,7 @@ module.exports = {
   WebchatProvider,
   MetaCloudApiProvider,
   WatiProvider,
+  TwilioProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,
