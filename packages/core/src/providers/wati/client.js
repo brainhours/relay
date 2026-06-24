@@ -21,6 +21,8 @@ const { WatiMessagingManager } = require('./messaging');
 const { WatiContactsManager } = require('./contacts');
 const { WatiConversationsManager } = require('./conversations');
 const { WatiTemplatesManager } = require('./templates');
+const { WatiAccountManager } = require('./account');
+const { WatiChatbotsManager } = require('./chatbots');
 
 /**
  * Wati Provider Configuration
@@ -74,6 +76,8 @@ class WatiProvider extends BaseProvider {
     this.contacts = new WatiContactsManager(this);
     this.conversations = new WatiConversationsManager(this);
     this.templates = new WatiTemplatesManager(this);
+    this.account = new WatiAccountManager(this);
+    this.chatbots = new WatiChatbotsManager(this);
   }
 
   /**

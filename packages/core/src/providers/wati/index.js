@@ -34,6 +34,8 @@ const { WatiMessagingManager } = require('./messaging');
 const { WatiContactsManager } = require('./contacts');
 const { WatiConversationsManager, VALID_CHAT_STATUSES } = require('./conversations');
 const { WatiTemplatesManager } = require('./templates');
+const { WatiAccountManager } = require('./account');
+const { WatiChatbotsManager } = require('./chatbots');
 const {
   parseWatiWebhook,
   validateWatiSignature,
@@ -50,6 +52,8 @@ module.exports = {
   WatiContactsManager,
   WatiConversationsManager,
   WatiTemplatesManager,
+  WatiAccountManager,
+  WatiChatbotsManager,
 
   // Webhook utilities
   parseWatiWebhook,

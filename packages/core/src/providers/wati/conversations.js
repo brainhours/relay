@@ -76,6 +76,43 @@ class WatiConversationsManager {
       data
     });
   }
+
+  /**
+   * Assign a chat to Wati TEAM(S) by NAME — Wati runs its OWN distribution
+   * (round-robin) to operators within the team. Atribui ao CHAT (remove equipes
+   * anteriores automaticamente). É o "transferir pra fila".
+   *
+   * ⚠️ Requer plano Pro da Wati.
+   *
+   * Params via query (estilo v1, igual assignOperator):
+   *   teams (array<string>, obrigatório), whatsappNumber OU target,
+   *   channelPhoneNumber (multi-número).
+   *
+   * @param {Object} params
+   * @param {string[]} params.teams              - nomes das equipes (ex.: ['Suporte'])
+   * @param {string} [params.whatsappNumber]     - telefone do contato do chat
+   * @param {string} [params.target]             - id/telefone/BSUID (precede whatsappNumber)
+   * @param {string} [params.channelPhoneNumber] - número do canal (multi-número)
+   * @returns {Promise<Object>} 200 OK
+   * @see https://docs.wati.io/reference/post_api-v1-assignteam
+   */
+  async assignTeams({ apiEndpoint, accessToken, teams, whatsappNumber, target, channelPhoneNumber } = {}) {
+    const teamList = Array.isArray(teams) ? teams : [teams].filter(Boolean);
+    // `teams` é array<string> em query → serializa repetido (teams=a&teams=b),
+    // formato esperado pela Wati. Montamos a query explicitamente pra não
+    // depender da serialização default do axios (que usaria teams[]=).
+    const qp = teamList.map((tm) => `teams=${encodeURIComponent(tm)}`);
+    if (target) qp.push(`target=${encodeURIComponent(target)}`);
+    else if (whatsappNumber) qp.push(`whatsappNumber=${encodeURIComponent(cleanNumber(whatsappNumber))}`);
+    if (channelPhoneNumber) qp.push(`channelPhoneNumber=${encodeURIComponent(cleanNumber(channelPhoneNumber))}`);
+
+    return this.provider.request({
+      method: 'POST',
+      path: `/api/v1/assignTeam?${qp.join('&')}`,
+      apiEndpoint,
+      accessToken
+    });
+  }
 }
 
 module.exports = { WatiConversationsManager, VALID_CHAT_STATUSES };

@@ -41,6 +41,10 @@ class UnipilePostsManager {
       const axios = require('axios');
       const formData = new FormData();
 
+      // Unipile's multipart /posts endpoint requires account_id in the form BODY —
+      // the query-string account_id is ignored for multipart requests, so without
+      // this every media post (image/video/document) fails with 400 "account_id required".
+      formData.append('account_id', account_id);
       formData.append('text', text);
       formData.append('visibility', visibility);
 
