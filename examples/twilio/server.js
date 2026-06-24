@@ -33,6 +33,7 @@ const {
   TWILIO_AUTH_TOKEN,
   TWILIO_API_KEY_SID,
   TWILIO_API_KEY_SECRET,
+  TWILIO_CONNECT_APP_SID,
   TWILIO_SMS_FROM,
   TWILIO_WHATSAPP_FROM = '+14155238886',
   TWILIO_MESSAGING_SERVICE_SID,
@@ -47,7 +48,8 @@ const twilio = new TwilioProvider({
   accountSid: TWILIO_ACCOUNT_SID,
   authToken: TWILIO_AUTH_TOKEN,
   apiKeySid: TWILIO_API_KEY_SID,
-  apiKeySecret: TWILIO_API_KEY_SECRET
+  apiKeySecret: TWILIO_API_KEY_SECRET,
+  connectAppSid: TWILIO_CONNECT_APP_SID   // CN… — for Twilio Connect (OAuth)
 });
 
 if (!twilio.isInitialized()) {
@@ -158,6 +160,45 @@ app.post('/api/send-whatsapp', express.json(), async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Twilio Connect (OAuth-style onboarding) — alternative to pasting creds.
+// Configure the Connect App's "Authorize URL" to point at /twilio/connect/callback.
+// ---------------------------------------------------------------------------
+
+// 1) Redirect the customer to Twilio's hosted authorize screen.
+app.get('/twilio/connect/start', (_req, res) => {
+  if (!TWILIO_CONNECT_APP_SID) return res.status(500).send('Set TWILIO_CONNECT_APP_SID');
+  // In a real app, sign `state` (e.g. a JWT of the user/session) for CSRF.
+  const state = `demo-${Date.now()}`;
+  res.redirect(twilio.connect.getAuthorizeUrl({ state }));
+});
+
+// 2) Twilio redirects back here with ?AccountSid=…&state=… (or ?error=…).
+app.get('/twilio/connect/callback', (req, res) => {
+  const { ok, accountSid, state, error, errorDescription } = twilio.connect.parseCallback(req.query);
+  if (!ok) {
+    return res.status(400).json({ error: error || 'denied', errorDescription });
+  }
+  // Persist { accountSid, authMode: 'connect' } for this tenant; send on its
+  // behalf later with the connected accountSid + your master Auth Token.
+  console.log(`[connect] authorized AccountSid=${accountSid} state=${state}`);
+  res.json({ connected: true, accountSid, state });
+});
+
+// 3) Twilio POSTs here (form-encoded, signed) when a customer removes your app.
+app.post('/twilio/connect/deauthorize', express.urlencoded({ extended: false }), (req, res) => {
+  const proto = req.headers['x-forwarded-proto'] || req.protocol;
+  const url = `${proto}://${req.headers.host}${req.originalUrl}`;
+  // Deauthorize callbacks are signed with your CONNECT APP's (master) Auth Token.
+  if (!validateTwilioSignature(url, req.body, req.headers['x-twilio-signature'], TWILIO_AUTH_TOKEN)) {
+    return res.sendStatus(403);
+  }
+  const { accountSid, connectAppSid } = twilio.connect.parseDeauthorize(req.body);
+  console.log(`[connect] deauthorized AccountSid=${accountSid} app=${connectAppSid}`);
+  // db.disconnectTwilioChannelsByAccountSid(accountSid)
+  res.sendStatus(200);
+});
+
 // API: verify connection (great for setup screens)
 app.get('/api/verify-connection', async (_req, res) => {
   try {
@@ -188,4 +229,7 @@ app.listen(PORT, () => {
   console.log(`  POST /api/send-sms             — send an SMS`);
   console.log(`  POST /api/send-whatsapp        — send a WhatsApp message`);
   console.log(`  GET  /api/verify-connection    — sanity check creds`);
+  console.log(`  GET  /twilio/connect/start     — Connect (OAuth) onboarding`);
+  console.log(`  GET  /twilio/connect/callback  — Connect redirect-back`);
+  console.log(`  POST /twilio/connect/deauthorize — Connect removal callback`);
 });

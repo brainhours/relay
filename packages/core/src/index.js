@@ -60,7 +60,13 @@ const {
   emptyMessagingResponse,
   redirectResponse,
   toChannelAddress,
-  parseChannelAddress
+  parseChannelAddress,
+  TwilioConnectManager,
+  buildConnectAuthorizeUrl: buildTwilioConnectAuthorizeUrl,
+  parseConnectCallback: parseTwilioConnectCallback,
+  parseConnectDeauthorize: parseTwilioConnectDeauthorize,
+  CONNECT_AUTHORIZE_BASE_URL: TWILIO_CONNECT_AUTHORIZE_BASE_URL,
+  TwilioContentManager
 } = require('./providers/twilio');
 
 // Wati (WhatsApp Business / BSP) sub-modules
@@ -198,6 +204,12 @@ module.exports = {
   redirectResponse,
   toChannelAddress,
   parseChannelAddress,
+  TwilioConnectManager,
+  buildTwilioConnectAuthorizeUrl,
+  parseTwilioConnectCallback,
+  parseTwilioConnectDeauthorize,
+  TWILIO_CONNECT_AUTHORIZE_BASE_URL,
+  TwilioContentManager,
 
   // Wati (WhatsApp Business / BSP)
   WatiMessagingManager,

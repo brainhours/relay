@@ -10,7 +10,7 @@ Relay supports multiple messaging providers through a unified interface.
 | Uazapi | Stable (v1.8.0+) | WhatsApp (Brazilian API, multi-instance) |
 | Cloud API | Stable (v1.10.0+) | WhatsApp (official Meta Cloud API) |
 | Webchat | Stable (v1.9.0+) | First-party embeddable chat on your customer's site |
-| Twilio | Stable (v1.18.0+) | SMS, MMS, WhatsApp (Programmable Messaging) |
+| Twilio | Stable (v1.18.0+) | SMS, MMS, WhatsApp (Programmable Messaging); Twilio Connect OAuth onboarding (v1.19.0+) |
 
 ## Unipile Provider
 
@@ -1023,6 +1023,119 @@ await twilio.messaging.sendSms({
 const event = parseTwilioWebhook(req.body);
 const tenant = await db.findTenantByAccountSid(event.accountId);
 ```
+
+### Twilio Connect (OAuth-style onboarding)
+
+[Twilio Connect](https://www.twilio.com/docs/iam/connect) is the alternative to
+asking customers to paste an Account SID + Auth Token: the customer clicks
+"Connect", logs into their **own** Twilio on a Twilio-hosted screen, authorizes
+your Connect App, and Twilio bills them directly. You never handle their
+credentials.
+
+After authorization you act on their behalf with the **connected `AccountSid`**
+(per-call) + **your platform's master Auth Token** (the provider default) — the
+same per-call override used for subaccounts. So Connect needs **no new API auth
+code**; Relay only ships the URL builder + callback parsers (the redirect and
+callback routes stay in your app, like Unipile's hosted auth).
+
+```javascript
+const { TwilioProvider } = require('@guilhermegoulart1/relay-core');
+
+// One platform-level provider holding YOUR master Auth Token + Connect App SID.
+const twilio = new TwilioProvider({
+  authToken: process.env.TWILIO_MASTER_AUTH_TOKEN,
+  connectAppSid: process.env.TWILIO_CONNECT_APP_SID   // CN…
+});
+
+// 1) Kick off: redirect the customer to the hosted authorize screen.
+//    `state` is echoed back — sign/verify it for CSRF + to find the user later.
+app.get('/twilio/connect/start', (req, res) => {
+  const state = signState({ userId: req.user.id });
+  res.redirect(twilio.connect.getAuthorizeUrl({ state }));
+});
+
+// 2) Callback: Twilio redirects back to your Connect App's "Authorize URL"
+//    (configured in the Console) with ?AccountSid=…&state=…
+app.get('/twilio/connect/callback', (req, res) => {
+  const { ok, accountSid, state, error } = twilio.connect.parseCallback(req.query);
+  if (!ok) return res.status(400).send(`Connect failed: ${error || 'denied'}`);
+  const { userId } = verifyState(state);              // CSRF check
+  await db.saveTwilioChannel({ userId, accountSid, authMode: 'connect' });
+  res.redirect('/channels?connected=twilio');
+});
+
+// 3) Send on their behalf — connected AccountSid + your master Auth Token.
+await twilio.messaging.sendSms({ accountSid, to, from, body });
+
+// 4) Deauthorize: Twilio POSTs (form-encoded, signed) when a customer removes
+//    your app. Validate the signature with your MASTER Auth Token, then revoke.
+app.post('/twilio/connect/deauthorize', express.urlencoded({ extended: false }), (req, res) => {
+  const url = `https://${req.headers.host}${req.originalUrl}`;
+  if (!validateTwilioSignature(url, req.body, req.headers['x-twilio-signature'], process.env.TWILIO_MASTER_AUTH_TOKEN)) {
+    return res.sendStatus(403);
+  }
+  const { accountSid } = twilio.connect.parseDeauthorize(req.body);
+  await db.disconnectTwilioChannelsByAccountSid(accountSid);
+  res.sendStatus(200);
+});
+```
+
+> **Manual *or* Connect.** Both paths converge on the same call shape — only the
+> credential source differs. Manual: store the customer's `accountSid` +
+> encrypted `authToken` and pass both per-call. Connect: store the `accountSid`
+> and pass it with your master `authToken` (the provider default). The webhook
+> path is identical.
+
+| Helper | Purpose |
+|---|---|
+| `twilio.connect.getAuthorizeUrl({ connectAppSid?, state })` | build the hosted authorize redirect URL |
+| `twilio.connect.parseCallback(query)` | `{ ok, accountSid, state, error, errorDescription }` |
+| `twilio.connect.parseDeauthorize(body)` | `{ accountSid, connectAppSid }` from the deauthorize POST |
+
+Also exported standalone: `buildTwilioConnectAuthorizeUrl`,
+`parseTwilioConnectCallback`, `parseTwilioConnectDeauthorize` (package root), or
+unprefixed from `@guilhermegoulart1/relay-core/providers/twilio`.
+
+### Content API (`twilio.content`)
+
+Manage the `contentSid` (HX…) templates that `sendContentTemplate` sends. The
+Content API lives on a different host (`content.twilio.com/v1`), takes **JSON**
+bodies, and is scoped to the account by Basic auth (no `/Accounts/{Sid}` path) —
+the manager handles all of that; you just pass the usual per-call credentials.
+
+```javascript
+// List your templates WITH WhatsApp approval status (best for a picker):
+const all = await twilio.content.listAllWithApprovals({ accountSid, authToken });
+// each item: { sid, friendly_name, language, variables, types, approval_requests: [...] }
+
+// Create + submit for WhatsApp approval:
+const c = await twilio.content.create({
+  accountSid, authToken,
+  friendlyName: 'order_update',
+  language: 'pt',
+  types: { 'twilio/text': { body: 'Olá {{1}}, seu pedido {{2}} saiu para entrega.' } },
+  variables: { '1': 'Joana', '2': '#1234' }
+});
+await twilio.content.requestWhatsAppApproval({
+  accountSid, authToken, contentSid: c.sid, name: 'order_update', category: 'UTILITY'
+});
+
+// Then send it (Programmable Messaging) — see sendContentTemplate above:
+await twilio.messaging.sendContentTemplate({
+  accountSid, authToken, to: '+5511999999999', from: '+14155238886',
+  contentSid: c.sid, contentVariables: { 1: 'Joana', 2: '#1234' }
+});
+```
+
+| Method | Purpose |
+|---|---|
+| `content.create({ types, language, friendlyName?, variables? })` | create a template (returns `sid`) |
+| `content.list` / `content.listAll` | page / auto-page your content |
+| `content.get({ contentSid })` | fetch one |
+| `content.delete({ contentSid, deleteInWaba? })` | delete |
+| `content.listWithApprovals` / `listAllWithApprovals` | content + WhatsApp approval status |
+| `content.requestWhatsAppApproval({ contentSid, name, category })` | submit for WhatsApp approval |
+| `content.fetchApprovals({ contentSid })` | approval status for one SID |
 
 ---
 

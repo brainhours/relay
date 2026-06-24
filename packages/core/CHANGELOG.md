@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0] - 2026-06-24
+
+### Added
+
+- **Twilio Content API** (`twilio.content`) — manage the `contentSid` (HX…)
+  templates used for WhatsApp / SMS / RCS, on the separate `content.twilio.com`
+  host (JSON bodies, account-scoped by auth).
+
+  - **`TwilioContentManager`**: `create`, `list` / `listAll`, `get`, `delete`,
+    `listWithApprovals` / `listAllWithApprovals` (content + WhatsApp approval
+    status — the best source for a template picker), `requestWhatsAppApproval`,
+    `fetchApprovals`. Auto-pagination follows `meta.next_page_url`.
+  - `TwilioProvider.request()` gained a JSON-body path (`opts.json`) alongside
+    the existing form-encoded path, since the Content API takes JSON (the
+    Programmable Messaging API stays form-encoded).
+  - Exported from the package root and from
+    `@guilhermegoulart1/relay-core/providers/twilio` (`TwilioContentManager`,
+    `CONTENT_BASE_URL`).
+
+## [1.19.0] - 2026-06-24
+
+### Added
+
+- **Twilio Connect** (OAuth-style hosted authorization) for the Twilio provider.
+  Lets a platform onboard a customer's Twilio account without the customer ever
+  pasting an Account SID / Auth Token — the customer clicks "Connect", logs into
+  their own Twilio on a Twilio-hosted screen, authorizes your Connect App, and
+  Twilio redirects back with the connected `AccountSid`. Twilio bills that
+  customer directly.
+
+  - **`twilio.connect`** manager + standalone helpers:
+    - **`buildConnectAuthorizeUrl({ connectAppSid, state })`** — builds the
+      `https://www.twilio.com/authorize/{ConnectAppSid}` redirect URL (the
+      redirect-back URL is configured on the Connect App in the Console; `state`
+      is echoed back for CSRF/correlation).
+    - **`parseConnectCallback(query)`** — normalizes the redirect-back query into
+      `{ ok, accountSid, state, error, errorDescription }` (defensive about
+      casing; works with `req.query` or `URLSearchParams`).
+    - **`parseConnectDeauthorize(body)`** — extracts `{ accountSid, connectAppSid }`
+      from the Deauthorize callback POST (validate its `X-Twilio-Signature` with
+      `validateTwilioSignature` + your master Auth Token first).
+  - `TwilioProvider` gains an optional `connectAppSid` config (default for
+    `connect.getAuthorizeUrl()`). **No new API auth code needed** — Connect API
+    calls reuse the existing per-call `accountSid` override with your platform
+    master `authToken`.
+  - Zero-dependency, network-free. The OAuth redirect/callback routes remain
+    app-side (mirrors Unipile's hosted-auth pairing).
+  - Exported from the package root (`buildTwilioConnectAuthorizeUrl`,
+    `parseTwilioConnectCallback`, `parseTwilioConnectDeauthorize`,
+    `TwilioConnectManager`) and unprefixed from
+    `@guilhermegoulart1/relay-core/providers/twilio`. Docs in `docs/providers.md`
+    and routes in the `examples/twilio` app + smoke test.
+
 ## [1.18.0] - 2026-06-24
 
 ### Added

@@ -58,6 +58,14 @@ const {
   emptyMessagingResponse,
   redirectResponse
 } = require('./twiml');
+const {
+  TwilioConnectManager,
+  buildConnectAuthorizeUrl,
+  parseConnectCallback,
+  parseConnectDeauthorize,
+  CONNECT_AUTHORIZE_BASE_URL
+} = require('./connect');
+const { TwilioContentManager, CONTENT_BASE_URL } = require('./content');
 
 module.exports = {
   // Provider
@@ -67,6 +75,17 @@ module.exports = {
   TwilioMessagingManager,
   TwilioMediaManager,
   TwilioAccountManager,
+  TwilioConnectManager,
+  TwilioContentManager,
+
+  // Twilio Content API
+  CONTENT_BASE_URL,
+
+  // Twilio Connect (OAuth-style hosted authorization)
+  buildConnectAuthorizeUrl,
+  parseConnectCallback,
+  parseConnectDeauthorize,
+  CONNECT_AUTHORIZE_BASE_URL,
 
   // Errors
   TwilioApiError,

@@ -29,6 +29,9 @@ const {
   TwilioApiError,
   TWILIO_ERROR_CODES,
   isTwilioRetryable,
+  buildTwilioConnectAuthorizeUrl,
+  parseTwilioConnectCallback,
+  parseTwilioConnectDeauthorize,
   EventTypes,
   ProviderTypes,
   parseWebhook,
@@ -213,6 +216,67 @@ test('messagingResponse supports media + multiple messages', () => {
 test('emptyMessagingResponse / redirectResponse', () => {
   assert.ok(emptyMessagingResponse().includes('<Response></Response>'));
   assert.ok(redirectResponse('https://x/next').includes('<Redirect method="POST">https://x/next</Redirect>'));
+});
+
+// ---------------------------------------------------------------------------
+console.log('\n[ Twilio Connect (OAuth) ]');
+
+test('createProvider wires the connect manager', () => {
+  const t = createProvider('twilio', { authToken: 'tok', connectAppSid: 'CNapp' });
+  assert.ok(t.connect);
+  assert.equal(t.connectAppSid, 'CNapp');
+});
+
+test('getAuthorizeUrl uses provider connectAppSid + encodes state', () => {
+  const t = createProvider('twilio', { authToken: 'tok', connectAppSid: 'CNapp' });
+  assert.equal(t.connect.getAuthorizeUrl(), 'https://www.twilio.com/authorize/CNapp');
+  assert.equal(
+    t.connect.getAuthorizeUrl({ state: 'a b&c' }),
+    'https://www.twilio.com/authorize/CNapp?state=a+b%26c'
+  );
+});
+
+test('buildTwilioConnectAuthorizeUrl requires connectAppSid', () => {
+  assert.throws(() => buildTwilioConnectAuthorizeUrl({}), /connectAppSid/);
+  assert.equal(buildTwilioConnectAuthorizeUrl({ connectAppSid: 'CN1' }), 'https://www.twilio.com/authorize/CN1');
+});
+
+test('parseConnectCallback: success vs denial', () => {
+  const ok = parseTwilioConnectCallback({ AccountSid: 'ACconnected', state: 's1' });
+  assert.deepEqual(ok, { ok: true, accountSid: 'ACconnected', state: 's1', error: null, errorDescription: null });
+
+  const denied = parseTwilioConnectCallback({ error: 'unauthorized', error_description: 'user denied' });
+  assert.equal(denied.ok, false);
+  assert.equal(denied.accountSid, null);
+  assert.equal(denied.error, 'unauthorized');
+});
+
+test('parseConnectDeauthorize extracts AccountSid + ConnectAppSid', () => {
+  const d = parseTwilioConnectDeauthorize({ AccountSid: 'ACx', ConnectAppSid: 'CNapp' });
+  assert.deepEqual(d, { accountSid: 'ACx', connectAppSid: 'CNapp' });
+});
+
+// ---------------------------------------------------------------------------
+console.log('\n[ Content API (twilio.content) ]');
+
+test('provider exposes the content manager + methods', () => {
+  const t = createProvider('twilio', { accountSid: 'ACx', authToken: 'tok' });
+  assert.ok(t.content);
+  for (const m of ['create', 'list', 'listAll', 'get', 'delete', 'listWithApprovals', 'listAllWithApprovals', 'requestWhatsAppApproval', 'fetchApprovals']) {
+    assert.equal(typeof t.content[m], 'function', `content.${m} missing`);
+  }
+});
+
+test('content.create rejects without types/language (returns a rejected promise)', () => {
+  const t = createProvider('twilio', { accountSid: 'ACx', authToken: 'tok' });
+  const pr = t.content.create({ language: 'pt' });
+  assert.ok(pr && typeof pr.then === 'function');
+  pr.then(() => { throw new Error('should have rejected'); }, () => {}); // swallow expected rejection
+});
+
+test('TwilioContentManager exported from the package', () => {
+  const pkg = require('@guilhermegoulart1/relay-core');
+  assert.equal(typeof pkg.TwilioContentManager, 'function');
 });
 
 // ---------------------------------------------------------------------------

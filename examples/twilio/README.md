@@ -1,7 +1,7 @@
 # Twilio Example
 
 Express app demonstrating the **Twilio (SMS / MMS / WhatsApp)** provider in
-`@guilhermegoulart1/relay-core@1.18.0`.
+`@guilhermegoulart1/relay-core@1.19.0`.
 
 What it shows:
 - Webhook POST: `X-Twilio-Signature` validation + `parseTwilioWebhook` →
@@ -9,8 +9,10 @@ What it shows:
 - Replying inline with **TwiML** (`messagingResponse`) or an empty `<Response/>`
 - Sending SMS (`messaging.sendSms`) and WhatsApp (`messaging.sendWhatsApp`)
 - Listening to `MESSAGE_RECEIVED` / `SENT` / `DELIVERED` / `READ` / `FAILED`
+- **Twilio Connect** (OAuth-style onboarding): `/twilio/connect/start`,
+  `/twilio/connect/callback`, `/twilio/connect/deauthorize`
 - An offline smoke test (`test-smoke.js`) covering parser + signature + TwiML +
-  error mapping
+  Connect helpers + error mapping
 
 ## Prerequisites
 
@@ -84,6 +86,22 @@ npm run test:smoke
 
 Validates the parser / signature / TwiML / error mapping without hitting Twilio.
 Good for CI.
+
+## Twilio Connect (OAuth onboarding)
+
+Instead of pasting an Account SID + Auth Token, customers can authorize your
+**Connect App** on a Twilio-hosted screen — you never handle their credentials,
+and Twilio bills them directly.
+
+1. Create a Connect App in the Twilio Console and set its **Authorize URL** to
+   `https://<your-tunnel>/twilio/connect/callback`. Copy the `CN…` SID into
+   `TWILIO_CONNECT_APP_SID` (and set `TWILIO_AUTH_TOKEN` to your master token).
+2. Send the customer to `GET /twilio/connect/start` → they're redirected to
+   Twilio, authorize, and bounce back to `/twilio/connect/callback` with their
+   connected `AccountSid`.
+3. Send on their behalf with that `accountSid` + **your master Auth Token**:
+   `twilio.messaging.sendSms({ accountSid, to, from, body })`.
+4. `POST /twilio/connect/deauthorize` receives the signed removal callback.
 
 ## Multi-tenant
 

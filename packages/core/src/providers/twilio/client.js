@@ -51,6 +51,8 @@ const { TwilioApiError } = require('./errors');
 const { TwilioMessagingManager } = require('./messaging');
 const { TwilioMediaManager } = require('./media');
 const { TwilioAccountManager } = require('./account');
+const { TwilioConnectManager } = require('./connect');
+const { TwilioContentManager } = require('./content');
 const { toChannelAddress, parseChannelAddress } = require('./addresses');
 
 const DEFAULT_BASE_URL = 'https://api.twilio.com';
@@ -62,6 +64,7 @@ const API_VERSION = '2010-04-01';
  * @property {string} [authToken]    - Default Auth Token. Signs webhooks; used as Basic password unless an API Key is given.
  * @property {string} [apiKeySid]    - Optional API Key SID (SK…). Preferred Basic username in production.
  * @property {string} [apiKeySecret] - Optional API Key Secret. Basic password when apiKeySid is set.
+ * @property {string} [connectAppSid] - Optional Twilio Connect App SID (CN…). Default for `connect.getAuthorizeUrl()`.
  * @property {number} [timeout=15000]
  * @property {string} [baseUrl='https://api.twilio.com']
  */
@@ -77,12 +80,15 @@ class TwilioProvider extends BaseProvider {
     this.authToken = config.authToken || null;
     this.apiKeySid = config.apiKeySid || null;
     this.apiKeySecret = config.apiKeySecret || null;
+    this.connectAppSid = config.connectAppSid || null;
     this.timeout = config.timeout ?? 15000;
     this.baseUrl = (config.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 
     this.messaging = new TwilioMessagingManager(this);
     this.media = new TwilioMediaManager(this);
     this.account = new TwilioAccountManager(this);
+    this.connect = new TwilioConnectManager(this);
+    this.content = new TwilioContentManager(this);
   }
 
   /** Usable as long as it can resolve an Account SID + a Basic password. */
@@ -133,6 +139,7 @@ class TwilioProvider extends BaseProvider {
    * @param {string} [opts.apiKeySid]          - override default API Key SID
    * @param {string} [opts.apiKeySecret]       - override default API Key Secret
    * @param {Object} [opts.form]               - x-www-form-urlencoded body (arrays => repeated keys)
+   * @param {Object} [opts.json]               - JSON body (Content API). Mutually exclusive with form.
    * @param {Object} [opts.params]             - query params
    * @param {Object} [opts.headers]
    * @param {string} [opts.responseType]       - axios responseType ('arraybuffer' for media download)
@@ -174,6 +181,11 @@ class TwilioProvider extends BaseProvider {
     if (opts.form !== undefined) {
       axiosConfig.data = toFormBody(opts.form);
       headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    } else if (opts.json !== undefined) {
+      // The Content API (content.twilio.com) takes JSON bodies, unlike the
+      // form-encoded Programmable Messaging API.
+      axiosConfig.data = opts.json;
+      headers['Content-Type'] = 'application/json';
     }
 
     try {

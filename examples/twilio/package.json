@@ -10,7 +10,7 @@
     "test:smoke": "node test-smoke.js"
   },
   "dependencies": {
-    "@guilhermegoulart1/relay-core": "^1.18.0",
+    "@guilhermegoulart1/relay-core": "^1.19.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2"
   }
