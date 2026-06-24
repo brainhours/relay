@@ -16,7 +16,7 @@
 
 ## Features
 
-- **Multi-provider support** - Unipile (LinkedIn / WhatsApp / Email / …), Uazapi (WhatsApp BR), Meta Cloud API (official WhatsApp), and first-party Webchat
+- **Multi-provider support** - Unipile (LinkedIn / WhatsApp / Email / …), Uazapi (WhatsApp BR), Meta Cloud API (official WhatsApp), Twilio (SMS / MMS / WhatsApp), and first-party Webchat
 - **Normalized events** - Consistent event format across all messaging providers
 - **Webhook handling** - Built-in parsing, validation, and queue management
 - **Channel agnostic** - LinkedIn, WhatsApp, Instagram, Telegram, SMS, Email
@@ -105,7 +105,8 @@ app.post('/webhooks/unipile', (req, res) => {
 | Telegram | Unipile | Stable |
 | Messenger | Unipile | Stable |
 | Email | Unipile | Stable |
-| SMS | Twilio | Coming Soon |
+| SMS / MMS | Twilio | Stable (v1.18.0+) |
+| WhatsApp (Twilio) | Twilio | Stable (v1.18.0+) |
 
 ### Meta Cloud API (official WhatsApp) quick start
 
@@ -249,6 +250,63 @@ app.post('/webhooks/uazapi', (req, res) => {
   res.json({ ok: true });
 });
 ```
+
+### Twilio (SMS / MMS / WhatsApp) quick start
+
+```javascript
+const express = require('express');
+const {
+  TwilioProvider,
+  parseTwilioWebhook,
+  validateTwilioSignature,
+  emptyMessagingResponse,
+  MessagingEventEmitter,
+  EventTypes
+} = require('@guilhermegoulart1/relay-core');
+
+const twilio = new TwilioProvider({
+  accountSid: process.env.TWILIO_ACCOUNT_SID,
+  authToken: process.env.TWILIO_AUTH_TOKEN     // also signs inbound webhooks
+});
+
+const emitter = new MessagingEventEmitter();
+emitter.on(EventTypes.MESSAGE_RECEIVED, (e) => {
+  if (e.provider !== 'twilio') return;
+  console.log(`${e.metadata.channel} ${e.senderName || e.senderId}: ${e.content}`);
+});
+
+const app = express();
+
+// Twilio webhooks are application/x-www-form-urlencoded (NOT JSON)
+app.post('/webhooks/twilio',
+  express.urlencoded({ extended: false }),
+  (req, res) => {
+    const url = `https://${req.headers.host}${req.originalUrl}`;
+    const ok = validateTwilioSignature(
+      url, req.body, req.headers['x-twilio-signature'], process.env.TWILIO_AUTH_TOKEN
+    );
+    if (!ok) return res.sendStatus(403);
+
+    emitter.emit(parseTwilioWebhook(req.body));
+    res.type('text/xml').send(emptyMessagingResponse());
+  });
+
+// Send an SMS
+await twilio.messaging.sendSms({
+  to: '+5511999999999',
+  from: '+12025550123',
+  body: 'Hello from Relay!'
+});
+
+// Send a WhatsApp message (whatsapp: prefix added for you)
+await twilio.messaging.sendWhatsApp({
+  to: '+5511999999999',
+  from: '+14155238886',
+  body: 'Olá!'
+});
+```
+
+See [examples/twilio](./examples/twilio) for the full setup.
 
 ---
 

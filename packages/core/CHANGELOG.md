@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0] - 2026-06-24
+
+### Added
+
+- **Twilio provider** (`@guilhermegoulart1/relay-core/providers/twilio`):
+  official Twilio Programmable Messaging integration — **SMS**, **MMS** and
+  **WhatsApp** (Twilio's WhatsApp Business sender).
+
+  - **`TwilioProvider`** — single endpoint (`https://api.twilio.com/2010-04-01`),
+    multi-tenant via per-call credentials (Twilio subaccounts). HTTP Basic auth
+    with either Account SID + Auth Token or an API Key pair (SID + secret); the
+    Account SID is always used in the URL path.
+  - **`messaging`** manager — `send`, `sendSms`, `sendMms`, `sendWhatsApp`,
+    `sendContentTemplate` (Content API templates), `get`, `list`,
+    `listNextPage`, `redact`, `delete`. Channel prefixing (`whatsapp:`) is
+    handled for you; `from` or `messagingServiceSid` are interchangeable.
+  - **`media`** manager — `list`, `getInfo`, `download` (follows Twilio's 302 to
+    the CDN), `delete`.
+  - **`account`** manager — `getAccount`, `listPhoneNumbers`,
+    `listMessagingServices`, `listSubaccounts`, `verifyConnection`.
+  - **`parseTwilioWebhook`** — normalizes both inbound messages and status
+    callbacks (form-encoded, NOT JSON) into a single `NormalizedEvent`. Channel
+    (`SMS`/`WHATSAPP`) inferred from the address prefix; statuses mapped to
+    `MESSAGE_SENT`/`DELIVERED`/`READ`/`FAILED`.
+  - **`validateTwilioSignature`** — full `X-Twilio-Signature` HMAC-SHA1 scheme
+    (URL + sorted POST params), constant-time compare, zero-dep.
+  - **`TwilioApiError`** + **`TWILIO_ERROR_CODES`** — typed errors with
+    `twilioCode`/`moreInfo` preserved and an `isRetryable()` hint; the code map
+    covers both synchronous API errors and async status-callback `ErrorCode`s.
+  - **TwiML builders** — `messagingResponse`, `emptyMessagingResponse`,
+    `redirectResponse` (XML-escaped, messaging subset).
+  - Registered in the provider registry / `parseWebhook` / `validateWebhookSignature`
+    dispatch (`twilio`), with full docs in `docs/providers.md` and a runnable
+    `examples/twilio` Express app + offline smoke test.
+
 ## [1.17.1] - 2026-06-24
 
 ### Fixed

@@ -37,10 +37,31 @@ const {
   WebchatProvider,
   MetaCloudApiProvider,
   WatiProvider,
+  TwilioProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature
 } = require('./providers');
+
+// Twilio (SMS / MMS / WhatsApp) sub-modules (v1.18.0+)
+const {
+  TwilioMessagingManager,
+  TwilioMediaManager,
+  TwilioAccountManager,
+  TwilioApiError,
+  TWILIO_ERROR_CODES,
+  isRetryable: isTwilioRetryable,
+  parseTwilioWebhook,
+  validateTwilioSignature,
+  computeTwilioSignature,
+  generateWebhookJobId: generateTwilioWebhookJobId,
+  TWILIO_STATUS_MAP,
+  messagingResponse,
+  emptyMessagingResponse,
+  redirectResponse,
+  toChannelAddress,
+  parseChannelAddress
+} = require('./providers/twilio');
 
 // Wati (WhatsApp Business / BSP) sub-modules
 const {
@@ -155,9 +176,28 @@ module.exports = {
   WebchatProvider,
   MetaCloudApiProvider,
   WatiProvider,
+  TwilioProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,
+
+  // Twilio (SMS / MMS / WhatsApp) (v1.18.0+)
+  TwilioMessagingManager,
+  TwilioMediaManager,
+  TwilioAccountManager,
+  TwilioApiError,
+  TWILIO_ERROR_CODES,
+  isTwilioRetryable,
+  parseTwilioWebhook,
+  validateTwilioSignature,
+  computeTwilioSignature,
+  generateTwilioWebhookJobId,
+  TWILIO_STATUS_MAP,
+  messagingResponse,
+  emptyMessagingResponse,
+  redirectResponse,
+  toChannelAddress,
+  parseChannelAddress,
 
   // Wati (WhatsApp Business / BSP)
   WatiMessagingManager,

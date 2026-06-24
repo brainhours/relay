@@ -10,7 +10,7 @@ Relay supports multiple messaging providers through a unified interface.
 | Uazapi | Stable (v1.8.0+) | WhatsApp (Brazilian API, multi-instance) |
 | Cloud API | Stable (v1.10.0+) | WhatsApp (official Meta Cloud API) |
 | Webchat | Stable (v1.9.0+) | First-party embeddable chat on your customer's site |
-| Twilio | Coming Soon | SMS, WhatsApp, Voice |
+| Twilio | Stable (v1.18.0+) | SMS, MMS, WhatsApp (Programmable Messaging) |
 
 ## Unipile Provider
 
@@ -769,6 +769,259 @@ const info = await meta.account.verifyConnection({
 });
 // Throws MetaApiError if creds are bad. Otherwise:
 // => { ok: true, id, displayPhoneNumber, verifiedName, qualityRating, tier }
+```
+
+---
+
+## Twilio Provider
+
+The official [Twilio Programmable Messaging](https://www.twilio.com/docs/messaging)
+integration — **SMS**, **MMS** and **WhatsApp** (Twilio's WhatsApp Business
+sender). One global endpoint (`https://api.twilio.com/2010-04-01`); every
+request is scoped to an Account SID in the URL path. Multi-tenant via per-call
+credentials, which is exactly how Twilio **subaccounts** work.
+
+### Configuration
+
+```javascript
+const { TwilioProvider } = require('@guilhermegoulart1/relay-core');
+
+const twilio = new TwilioProvider({
+  accountSid: process.env.TWILIO_ACCOUNT_SID,   // AC… (required, or per-call)
+  authToken:  process.env.TWILIO_AUTH_TOKEN,    // signs webhooks; Basic password
+  // Prefer API Keys in production (rotate/scope without touching the Auth Token):
+  // apiKeySid:    process.env.TWILIO_API_KEY_SID,    // SK…
+  // apiKeySecret: process.env.TWILIO_API_KEY_SECRET,
+  timeout: 15000
+});
+
+if (!twilio.isInitialized()) console.error(twilio.getError());
+```
+
+**Authentication (HTTP Basic).** Username = API Key SID *if provided* else
+Account SID; password = API Key Secret *if provided* else Auth Token. The
+Account SID is **always** used in the URL regardless of which pair signs the
+request. The **Auth Token** (not an API Key secret) is what signs inbound
+webhooks (`X-Twilio-Signature`), so keep it around if you validate webhooks.
+
+The provider holds NO tenant state when used multi-tenant — pass the credentials
+per call:
+
+| Operation | Credentials |
+|---|---|
+| `messaging.*`, `media.*`, `account.*` | `accountSid` + (`authToken` **or** `apiKeySid` + `apiKeySecret`) |
+| Webhook signature validation | the tenant's `authToken` |
+
+### Available managers
+
+| Manager | Access | Methods |
+|---------|--------|---------|
+| `messaging` | `twilio.messaging` | send, sendSms, sendMms, sendWhatsApp, sendContentTemplate, get, list, listNextPage, redact, delete |
+| `media` | `twilio.media` | list, getInfo, download, delete |
+| `account` | `twilio.account` | getAccount, listPhoneNumbers, listMessagingServices, listSubaccounts, verifyConnection |
+
+### Sending — examples
+
+```javascript
+// Plain SMS
+await twilio.messaging.sendSms({
+  to: '+5511999999999',
+  from: '+12025550123',                 // your Twilio number (E.164)
+  body: 'Seu código é 123456'
+});
+
+// SMS via a Messaging Service (sender pool / sticky sender) instead of `from`
+await twilio.messaging.send({
+  to: '+5511999999999',
+  messagingServiceSid: 'MGxxxxxxxx',
+  body: 'Olá!'
+});
+
+// MMS (SMS + media)
+await twilio.messaging.sendMms({
+  to: '+5511999999999',
+  from: '+12025550123',
+  body: 'Aqui está o comprovante',
+  mediaUrl: 'https://example.com/recibo.pdf'   // string or array of URLs
+});
+
+// WhatsApp free-form (ONLY inside the 24h customer-service window). The
+// `whatsapp:` prefix is added for you.
+await twilio.messaging.sendWhatsApp({
+  to: '+5511999999999',
+  from: '+14155238886',                 // your WhatsApp-enabled Twilio number
+  body: 'Posso ajudar?'
+});
+
+// WhatsApp template (Content API) — required OUTSIDE the 24h window
+await twilio.messaging.sendContentTemplate({
+  to: '+5511999999999',
+  from: '+14155238886',
+  contentSid: 'HXxxxxxxxxxxxxxxxx',     // approved template
+  contentVariables: { 1: 'Joana', 2: '10/05/2026' }   // object or JSON string
+});
+```
+
+`send` requires `to`, exactly one of `from` / `messagingServiceSid`, and at
+least one of `body` / `mediaUrl` / `contentSid`. The Twilio Message resource is
+returned (`sid`, `status`, `to`, `from`, `num_segments`, `price`, …).
+
+### Errors — `TwilioApiError`
+
+Every synchronous Twilio failure is thrown as `TwilioApiError` with all Twilio
+fields preserved:
+
+```javascript
+const { TwilioApiError, TWILIO_ERROR_CODES } = require('@guilhermegoulart1/relay-core');
+
+try {
+  await twilio.messaging.sendWhatsApp({ ... });
+} catch (err) {
+  if (err instanceof TwilioApiError) {
+    if (err.twilioCode === TWILIO_ERROR_CODES.WHATSAPP_FREEFORM_OUTSIDE_WINDOW) {
+      // Switch to sendContentTemplate (approved template)
+    } else if (err.twilioCode === TWILIO_ERROR_CODES.BLOCKED_AS_SPAM) {
+      // Recipient sent STOP — suppress further sends
+    } else if (err.isRetryable()) {
+      // 429 / 5xx / WhatsApp rate limit — back off and retry
+    }
+    console.error(err.twilioCode, err.twilioMessage, err.moreInfo);
+  }
+  throw err;
+}
+```
+
+> Many delivery problems are **asynchronous** — they don't throw here, they
+> arrive later on the status-callback webhook as `metadata.errorCode` on a
+> `MESSAGE_FAILED` event (e.g. `30007` carrier-filtered). `TWILIO_ERROR_CODES`
+> covers both paths.
+
+### Webhooks
+
+Twilio POSTs webhooks as **`application/x-www-form-urlencoded`** (NOT JSON).
+Mount `express.urlencoded()` so `req.body` is the flat string map the parser
+expects. There are two kinds, both normalized by `parseTwilioWebhook` (1:1, like
+Uazapi/Wati):
+
+1. **Inbound message** — the customer messaged your number (`Body`, `From`,
+   `To`, WhatsApp `ProfileName`/`WaId`, media). → `MESSAGE_RECEIVED`.
+2. **Status callback** — lifecycle of a message you sent (`MessageStatus`). Set
+   it with `statusCallback` on send, or on the Messaging Service.
+
+```javascript
+const express = require('express');
+const {
+  parseTwilioWebhook, validateTwilioSignature, emptyMessagingResponse,
+  MessagingEventEmitter, EventTypes
+} = require('@guilhermegoulart1/relay-core');
+
+const emitter = new MessagingEventEmitter();
+emitter.on(EventTypes.MESSAGE_RECEIVED, (e) => {
+  if (e.provider !== 'twilio') return;
+  console.log(`${e.metadata.channel} ${e.senderName || e.senderId}: ${e.content}`);
+});
+
+app.post('/webhooks/twilio',
+  express.urlencoded({ extended: false }),
+  (req, res) => {
+    // Twilio signs the PUBLIC URL it called. Behind a proxy, rebuild it from
+    // X-Forwarded-Proto + Host. The query string (if any) must be included.
+    const url = `https://${req.headers.host}${req.originalUrl}`;
+    const ok = validateTwilioSignature(
+      url, req.body, req.headers['x-twilio-signature'], process.env.TWILIO_AUTH_TOKEN
+    );
+    if (!ok) return res.sendStatus(403);
+
+    emitter.emit(parseTwilioWebhook(req.body));
+
+    // Reply with empty TwiML (we dispatch replies via the REST API), or use
+    // messagingResponse('...') to reply inline.
+    res.type('text/xml').send(emptyMessagingResponse());
+  });
+```
+
+#### Signature validation
+
+`validateTwilioSignature(url, params, signatureHeader, authToken)` reproduces
+Twilio's scheme: the full request URL, plus each POST param appended as
+`key+value` in alphabetical key order, HMAC-SHA1 with the Auth Token,
+base64-encoded, compared constant-time to `X-Twilio-Signature`.
+
+- The `url` MUST exactly match what Twilio called — scheme, host, path **and**
+  query string. Behind a load balancer, use `X-Forwarded-Proto` + `Host`.
+- If `authToken` is falsy it returns `true` (dev convenience) — set it in prod.
+- Via the generic dispatcher, pass `payload` as `{ url, params }`:
+  `validateWebhookSignature('twilio', { url, params: req.body }, sig, authToken)`.
+
+#### Event mapping
+
+| Webhook signal | Normalized type |
+|---|---|
+| inbound (`Body`/`NumMedia`, `SmsStatus=received`) | `MESSAGE_RECEIVED` |
+| `MessageStatus` = `queued`/`sending`/`accepted`/`scheduled`/`sent` | `MESSAGE_SENT` (precise value in `metadata.status`) |
+| `MessageStatus` = `delivered` | `MESSAGE_DELIVERED` |
+| `MessageStatus` = `read` (WhatsApp) | `MESSAGE_READ` |
+| `MessageStatus` = `undelivered` / `failed` | `MESSAGE_FAILED` (`metadata.errorCode`) |
+| anything else | `UNKNOWN` |
+
+The channel (`SMS` vs `WHATSAPP`) is inferred from the `whatsapp:` prefix and
+exposed as `event.providerType` and `metadata.channel`. `senderId`/`chatId` are
+the **bare** E.164 numbers (prefix stripped); `accountId` is the `AccountSid`
+(the business number is in `metadata.to` for finer routing).
+
+### TwiML replies
+
+Zero-dep builders for the messaging subset (XML-escaped for you):
+
+```javascript
+const { messagingResponse, emptyMessagingResponse } = require('@guilhermegoulart1/relay-core');
+
+messagingResponse('Thanks, we got it!');
+// <?xml ...?><Response><Message>Thanks, we got it!</Message></Response>
+
+messagingResponse([{ body: 'See attachment', mediaUrl: 'https://x/a.jpg' }]);
+emptyMessagingResponse();   // <Response></Response> — take no action
+```
+
+### Reading media
+
+```javascript
+// From an inbound webhook attachment (event.attachments[0].url):
+const { buffer, contentType } = await twilio.media.download({ url: attachmentUrl });
+
+// Or by message + media SID:
+const list = await twilio.media.list({ messageSid: 'MM…' });
+const { buffer } = await twilio.media.download({
+  messageSid: 'MM…', mediaSid: list.media_list[0].sid
+});
+```
+
+### Verifying credentials at setup
+
+```javascript
+const info = await twilio.account.verifyConnection({ accountSid, authToken });
+// Throws TwilioApiError if creds are bad. Otherwise:
+// => { ok: true, sid, friendlyName, status: 'active', type: 'Full' }
+```
+
+### Multi-tenant pattern
+
+```javascript
+// 1. Persist per tenant: accountSid, authToken (encrypted), default from-number.
+// 2. Singleton provider (defaults optional):
+const twilio = new TwilioProvider();
+
+// 3. Resolve creds per request and pass them in:
+const creds = await db.loadTwilioCreds(tenantId);
+await twilio.messaging.sendSms({
+  accountSid: creds.accountSid, authToken: creds.authToken,
+  to, from: creds.fromNumber, body
+});
+
+// 4. In the webhook handler, route by event.accountId (= AccountSid) and/or
+//    metadata.to (the business number), then validate with that tenant's token:
+const event = parseTwilioWebhook(req.body);
+const tenant = await db.findTenantByAccountSid(event.accountId);
 ```
 
 ---
