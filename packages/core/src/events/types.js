@@ -41,7 +41,18 @@ const ProviderTypes = {
   TWITTER: 'TWITTER',
   EMAIL: 'EMAIL',
   SMS: 'SMS',
-  WEBCHAT: 'WEBCHAT'
+  WEBCHAT: 'WEBCHAT',
+  // Social channels added with the Zernio provider (publishing + social inbox)
+  FACEBOOK: 'FACEBOOK',
+  TIKTOK: 'TIKTOK',
+  YOUTUBE: 'YOUTUBE',
+  PINTEREST: 'PINTEREST',
+  REDDIT: 'REDDIT',
+  BLUESKY: 'BLUESKY',
+  THREADS: 'THREADS',
+  GOOGLEBUSINESS: 'GOOGLEBUSINESS',
+  SNAPCHAT: 'SNAPCHAT',
+  DISCORD: 'DISCORD'
 };
 
 /**

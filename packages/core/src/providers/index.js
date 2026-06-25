@@ -34,6 +34,11 @@ const {
   parseTwilioWebhook,
   validateTwilioSignature
 } = require('./twilio/webhooks');
+const { ZernioProvider } = require('./zernio/client');
+const {
+  parseZernioWebhook,
+  validateZernioSignature
+} = require('./zernio/webhooks');
 
 /**
  * Available providers
@@ -44,7 +49,8 @@ const providers = {
   webchat: WebchatProvider,
   'cloud-api': MetaCloudApiProvider,
   wati: WatiProvider,
-  twilio: TwilioProvider
+  twilio: TwilioProvider,
+  zernio: ZernioProvider
 };
 
 /**
@@ -85,6 +91,8 @@ function parseWebhook(providerName, rawPayload) {
       return parseWatiWebhook(rawPayload);
     case 'twilio':
       return parseTwilioWebhook(rawPayload);
+    case 'zernio':
+      return parseZernioWebhook(rawPayload);
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -121,6 +129,8 @@ function validateWebhookSignature(providerName, payload, signature, secret) {
         signature,
         secret
       );
+    case 'zernio':
+      return validateZernioSignature(payload, signature, secret);
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -134,6 +144,7 @@ module.exports = {
   MetaCloudApiProvider,
   WatiProvider,
   TwilioProvider,
+  ZernioProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,

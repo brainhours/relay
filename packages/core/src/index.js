@@ -38,10 +38,37 @@ const {
   MetaCloudApiProvider,
   WatiProvider,
   TwilioProvider,
+  ZernioProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature
 } = require('./providers');
+
+// Zernio (Social Media API — publishing + social inbox + ads, 15 channels)
+const {
+  ZernioPostsManager,
+  ZernioMediaManager,
+  ZernioAccountsManager,
+  ZernioConnectManager,
+  ZernioMessagingManager,
+  ZernioCommentsManager,
+  ZernioReviewsManager,
+  ZernioWhatsAppManager,
+  ZernioAnalyticsManager,
+  ZernioCrmManager,
+  ZernioAdsManager,
+  ZernioEngagementManager,
+  ZernioWebhooksManager,
+  ZernioApiError,
+  ZERNIO_ERROR_CODES,
+  isRetryable: isZernioRetryable,
+  parseZernioWebhook,
+  validateZernioSignature,
+  generateWebhookJobId: generateZernioWebhookJobId,
+  ZERNIO_EVENT_MAP,
+  ZERNIO_WEBHOOK_EVENTS,
+  PLATFORM_TO_PROVIDER_TYPE: ZERNIO_PLATFORM_TO_PROVIDER_TYPE
+} = require('./providers/zernio');
 
 // Twilio (SMS / MMS / WhatsApp) sub-modules (v1.18.0+)
 const {
@@ -183,9 +210,34 @@ module.exports = {
   MetaCloudApiProvider,
   WatiProvider,
   TwilioProvider,
+  ZernioProvider,
   createProvider,
   parseWebhook,
   validateWebhookSignature,
+
+  // Zernio (Social Media API — publishing + social inbox + ads, 15 channels) (v1.21.0+)
+  ZernioPostsManager,
+  ZernioMediaManager,
+  ZernioAccountsManager,
+  ZernioConnectManager,
+  ZernioMessagingManager,
+  ZernioCommentsManager,
+  ZernioReviewsManager,
+  ZernioWhatsAppManager,
+  ZernioAnalyticsManager,
+  ZernioCrmManager,
+  ZernioAdsManager,
+  ZernioEngagementManager,
+  ZernioWebhooksManager,
+  ZernioApiError,
+  ZERNIO_ERROR_CODES,
+  isZernioRetryable,
+  parseZernioWebhook,
+  validateZernioSignature,
+  generateZernioWebhookJobId,
+  ZERNIO_EVENT_MAP,
+  ZERNIO_WEBHOOK_EVENTS,
+  ZERNIO_PLATFORM_TO_PROVIDER_TYPE,
 
   // Twilio (SMS / MMS / WhatsApp) (v1.18.0+)
   TwilioMessagingManager,

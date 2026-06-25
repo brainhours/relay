@@ -16,7 +16,7 @@
 
 ## Features
 
-- **Multi-provider support** - Unipile (LinkedIn / WhatsApp / Email / …), Uazapi (WhatsApp BR), Meta Cloud API (official WhatsApp), Twilio (SMS / MMS / WhatsApp), and first-party Webchat
+- **Multi-provider support** - Unipile (LinkedIn / WhatsApp / Email / …), Uazapi (WhatsApp BR), Meta Cloud API (official WhatsApp), Twilio (SMS / MMS / WhatsApp), Zernio (social publishing + inbox + ads across 15 channels), and first-party Webchat
 - **Normalized events** - Consistent event format across all messaging providers
 - **Webhook handling** - Built-in parsing, validation, and queue management
 - **Channel agnostic** - LinkedIn, WhatsApp, Instagram, Telegram, SMS, Email
@@ -107,6 +107,10 @@ app.post('/webhooks/unipile', (req, res) => {
 | Email | Unipile | Stable |
 | SMS / MMS | Twilio | Stable (v1.18.0+) |
 | WhatsApp (Twilio) | Twilio | Stable (v1.18.0+) |
+| Social publishing (15 channels) | Zernio | Stable (v1.21.0+) |
+| Social inbox / DMs (IG / FB / WhatsApp / Telegram / X / Reddit / Bluesky) | Zernio | Stable (v1.21.0+) |
+| WhatsApp (Meta official, Embedded Signup) | Zernio | Stable (v1.21.0+) |
+| Comments / reviews / ads | Zernio | Stable (v1.21.0+) |
 
 ### Meta Cloud API (official WhatsApp) quick start
 
@@ -307,6 +311,73 @@ await twilio.messaging.sendWhatsApp({
 ```
 
 See [examples/twilio](./examples/twilio) for the full setup.
+
+### Zernio (social publishing + inbox + ads) quick start
+
+Zernio is a **single-key** API covering 15 channels (Twitter/X, Instagram,
+Facebook, LinkedIn, TikTok, YouTube, Pinterest, Reddit, Bluesky, Threads,
+Google Business, Telegram, Snapchat, WhatsApp, Discord). Unlike the messaging
+providers, the tenant boundary is the `profileId` / `accountId` you pass per
+call — not the credential.
+
+```javascript
+const express = require('express');
+const {
+  ZernioProvider,
+  parseZernioWebhook,
+  validateZernioSignature,
+  MessagingEventEmitter,
+  EventTypes
+} = require('@guilhermegoulart1/relay-core');
+
+const zernio = new ZernioProvider({
+  apiKey: process.env.ZERNIO_API_KEY,
+  webhookSecret: process.env.ZERNIO_WEBHOOK_SECRET
+});
+
+// Publish to LinkedIn + Instagram at once
+await zernio.posts.create({
+  content: 'New drop 🚀',
+  publishNow: true,
+  platforms: [
+    { platform: 'linkedin', accountId: liAccountId },
+    { platform: 'instagram', accountId: igAccountId }
+  ]
+});
+
+// Connect WhatsApp with Meta Embedded Signup (no manual BM token):
+const { authUrl } = await zernio.connect.getConnectUrl({
+  platform: 'whatsapp',
+  profileId,
+  redirectUrl: 'https://app.example.com/callback'
+});
+// → redirect the client to authUrl; Meta hosts the WABA + number picker.
+
+// Social inbox: reply to a DM
+await zernio.messaging.send({
+  conversationId,
+  accountId: igAccountId,
+  message: 'Thanks for reaching out!'
+});
+
+// Webhook intake (JSON; capture the raw body for signature verification)
+const emitter = new MessagingEventEmitter();
+app.use('/webhooks/zernio', express.json({
+  verify: (req, _res, buf) => { req.rawBody = buf; }
+}));
+app.post('/webhooks/zernio', (req, res) => {
+  if (!validateZernioSignature(req.rawBody, req.headers['x-zernio-signature'], process.env.ZERNIO_WEBHOOK_SECRET)) {
+    return res.sendStatus(401);
+  }
+  const event = parseZernioWebhook(req.body);
+  if (event && event.type === EventTypes.MESSAGE_RECEIVED) emitter.emit(event);
+  res.sendStatus(200);
+});
+```
+
+Managers on the provider instance: `posts`, `media`, `accounts`, `connect`,
+`messaging`, `comments`, `reviews`, `whatsapp`, `analytics`, `crm`, `ads`,
+`engagement`, `webhooks`.
 
 ---
 
