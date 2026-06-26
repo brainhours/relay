@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.0] - 2026-06-26
+
+### Fixed
+
+- **Unipile webhooks — não destruir webhooks all-accounts.** `addAccountToWebhook`
+  e `removeAccountFromWebhook` tratavam `account_ids: []` (= todas as contas) como
+  lista vazia e, via DELETE+CREATE, estreitavam o webhook para 1 conta — quebrando
+  o recebimento das demais. Agora são **no-op** quando o webhook já é all-accounts
+  (retornam `{ allAccounts: true }`).
+- **`webhooks.create` preserva a config rica.** Como Unipile não tem endpoint de
+  UPDATE, o DELETE+CREATE recriava o webhook **sem `events`/`data`**, caindo no
+  default `message_received` e perdendo o mapeamento de payload. `create` agora
+  aceita e reenvia `events`, `data`, `name` e `format`; add/remove os preservam ao
+  recriar.
+
 ## [1.20.0] - 2026-06-24
 
 ### Added

@@ -39,7 +39,7 @@ class UnipileWebhookManager {
    * @returns {Promise<Webhook>}
    */
   async create(options) {
-    const { request_url, source = 'all', account_ids, headers = [] } = options;
+    const { request_url, source = 'all', account_ids, headers = [], events, data, name, format } = options;
 
     if (!request_url) {
       throw new Error('request_url is required');
@@ -58,6 +58,23 @@ class UnipileWebhookManager {
 
     if (headers.length > 0) {
       body.headers = headers;
+    }
+
+    // ⚠️ Reenvia a config rica do webhook. Unipile não tem endpoint de UPDATE, então
+    // add/removeAccount fazem DELETE+CREATE; sem reenviar events/data o webhook recriado
+    // perde a seleção de eventos (cai no default `message_received`) e o mapeamento de
+    // payload. `name`/`format` preservam identificação e formato. (incidente 2026-06-25)
+    if (events && events.length > 0) {
+      body.events = events;
+    }
+    if (data && data.length > 0) {
+      body.data = data;
+    }
+    if (name) {
+      body.name = name;
+    }
+    if (format) {
+      body.format = format;
     }
 
     return this.provider.request({
@@ -267,11 +284,18 @@ class UnipileWebhookManager {
     const currentAccountIds = webhook.account_ids || [];
     const currentIds = currentAccountIds.map(a => typeof a === 'string' ? a : a.id);
 
+    // ⚠️ account_ids vazio = webhook ALL-ACCOUNTS (já cobre toda conta). Adicionar
+    // uma conta aqui ESTREITARIA o webhook (via DELETE+CREATE) para [1 conta] e
+    // quebraria todas as outras. No-op proposital. (incidente 2026-06-25)
+    if (currentIds.length === 0) {
+      return { webhook, added: false, allAccounts: true };
+    }
+
     if (currentIds.includes(accountId)) {
       return { webhook, added: false };
     }
 
-    // DELETE + CREATE with updated account_ids
+    // DELETE + CREATE with updated account_ids (preservando a config rica)
     const updatedAccountIds = [...currentIds, accountId];
 
     await this.delete(webhook.id);
@@ -280,7 +304,11 @@ class UnipileWebhookManager {
       request_url: requestUrl,
       source,
       account_ids: updatedAccountIds,
-      headers: webhook.headers || []
+      headers: webhook.headers || [],
+      events: webhook.events,
+      data: webhook.data,
+      name: webhook.name,
+      format: webhook.format
     });
 
     return { webhook: newWebhook, added: true };
@@ -312,6 +340,14 @@ class UnipileWebhookManager {
     const currentAccountIds = webhook.account_ids || [];
     const currentIds = currentAccountIds.map(a => typeof a === 'string' ? a : a.id);
 
+    // ⚠️ account_ids vazio = webhook ALL-ACCOUNTS. Remover 1 conta de "todas" não é
+    // expressável via account_ids, e o DELETE+CREATE perderia a cobertura global.
+    // No-op proposital — a conta deixa de receber eventos quando é desconectada do
+    // Unipile, não aqui. (incidente 2026-06-25)
+    if (currentIds.length === 0) {
+      return { webhook, removed: false, allAccounts: true };
+    }
+
     if (!currentIds.includes(accountId)) {
       return { webhook, removed: false };
     }
@@ -327,12 +363,16 @@ class UnipileWebhookManager {
       return { webhook: null, removed: true };
     }
 
-    // CREATE with updated account_ids
+    // CREATE with updated account_ids (preservando a config rica)
     const newWebhook = await this.create({
       request_url: requestUrl,
       source,
       account_ids: updatedAccountIds,
-      headers: webhook.headers || []
+      headers: webhook.headers || [],
+      events: webhook.events,
+      data: webhook.data,
+      name: webhook.name,
+      format: webhook.format
     });
 
     return { webhook: newWebhook, removed: true };
