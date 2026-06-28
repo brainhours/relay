@@ -98,7 +98,7 @@ function parseZernioWebhook(rawPayload = {}) {
     timestamp: p.timestamp || new Date().toISOString(),
     raw: rawPayload
   };
-  const metadata = { zernioEvent: event, eventId: p.id };
+  const metadata = { zernioEvent: rawPayload, eventId: p.id };
 
   // ── Message / reaction events ──────────────────────────────────────────────
   if (family === 'message' || family === 'reaction') {
@@ -193,12 +193,24 @@ function parseZernioWebhook(rawPayload = {}) {
   });
 }
 
-/** Normalize a Zernio attachments array into relay's { url, mimeType, id } shape. */
+/**
+ * Normalize a Zernio attachments array. Preserva `type` (categoria semântica:
+ * image/video/audio/file) E `originalType` (ex.: ig_reel, ig_story) — o consumer
+ * precisa distinguir mídia direta de post/reel compartilhado (link permanente,
+ * não baixável como arquivo). `payload` carrega título/url do share.
+ */
 function normalizeAttachments(attachments) {
   if (!Array.isArray(attachments)) return [];
   return attachments
     .filter((a) => a && a.url)
-    .map((a) => ({ url: a.url, mimeType: a.type || a.mimeType, id: a.id, payload: a.payload }));
+    .map((a) => ({
+      url: a.url,
+      type: a.type || null,
+      originalType: a.originalType || null,
+      mimeType: a.mimeType || a.type || null,
+      id: a.id || null,
+      payload: a.payload || null
+    }));
 }
 
 /**
