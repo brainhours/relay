@@ -127,6 +127,34 @@ function parseZernioWebhook(rawPayload = {}) {
     });
   }
 
+  // ── WhatsApp template status events ─────────────────────────────────────────
+  // `whatsapp.template.*` (ex.: whatsapp.template.status_updated) carrega uma
+  // entidade `template` — NÃO um `account`. Tem que ser tratado ANTES do branch
+  // de account/whatsapp abaixo, que senão engole o evento e descarta os campos do
+  // template (templateId/newStatus/reason). Shape passthrough: toleramos variações
+  // de nome de campo (id/_id/templateId, name/templateName, status/newStatus,
+  // rejectionReason/reason). `metaTemplateId` é exposto separado pra quem casa por
+  // id da Meta; `templateName` costuma ser a chave mais estável (única por WABA).
+  if (family === 'whatsapp' && String(event).startsWith('whatsapp.template')) {
+    const tpl = p.template || (p.whatsapp && p.whatsapp.template) || p.data || {};
+    Object.assign(metadata, {
+      platform: 'whatsapp',
+      templateId: tpl.id || tpl._id || tpl.templateId || null,
+      metaTemplateId: tpl.metaTemplateId || tpl.metaId || tpl.meta_template_id || null,
+      templateName: tpl.name || tpl.templateName || null,
+      newStatus: tpl.status || tpl.newStatus || null,
+      reason: tpl.rejectionReason || tpl.rejected_reason || tpl.reason || null,
+      category: tpl.category || null,
+      language: tpl.language || tpl.languageCode || tpl.language_code || null
+    });
+    return new NormalizedEvent({
+      ...base,
+      providerType: ProviderTypes.WHATSAPP,
+      messageId: tpl.id || tpl.name || null,
+      metadata
+    });
+  }
+
   // ── Account events ──────────────────────────────────────────────────────────
   if (family === 'account' || family === 'whatsapp') {
     Object.assign(metadata, {

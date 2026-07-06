@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.0] - 2026-07-06
+
+### Fixed
+
+- **Zernio — parser de `whatsapp.template.*` não descartava mais os campos do
+  template.** Eventos `whatsapp.template.status_updated` (family `whatsapp`) caíam
+  no branch genérico de account events, que só lê `account.*` — então
+  `templateId`, `newStatus` e `reason` nunca eram extraídos, inviabilizando o
+  tracking de aprovação/rejeição de template no consumidor. Agora há um branch
+  dedicado (antes do de account) que popula `metadata.templateId`,
+  `metaTemplateId`, `templateName`, `newStatus`, `reason`, `category` e `language`
+  a partir da entidade `template`. Eventos `whatsapp.number.*` seguem no branch de
+  account (inalterados).
+
 ## [1.22.0] - 2026-06-26
 
 ### Fixed
