@@ -23,6 +23,7 @@ const { WatiConversationsManager } = require('./conversations');
 const { WatiTemplatesManager } = require('./templates');
 const { WatiAccountManager } = require('./account');
 const { WatiChatbotsManager } = require('./chatbots');
+const { WatiMediaManager } = require('./media');
 
 /**
  * Wati Provider Configuration
@@ -78,6 +79,7 @@ class WatiProvider extends BaseProvider {
     this.templates = new WatiTemplatesManager(this);
     this.account = new WatiAccountManager(this);
     this.chatbots = new WatiChatbotsManager(this);
+    this.media = new WatiMediaManager(this);
   }
 
   /**
@@ -111,6 +113,11 @@ class WatiProvider extends BaseProvider {
    * @param {Object} [opts.params]          - query string
    * @param {Object} [opts.headers]
    * @param {number} [opts.timeout]
+   * @param {string} [opts.responseType]     - axios responseType. When
+   *                                           'arraybuffer', returns
+   *                                           `{ buffer, contentType }` instead
+   *                                           of parsed JSON (used by getMedia).
+   * @param {number} [opts.maxContentLength]
    * @returns {Promise<Object>}
    */
   async request(opts) {
@@ -124,8 +131,9 @@ class WatiProvider extends BaseProvider {
       throw new Error('Wati: accessToken is required (per-call or in config)');
     }
 
+    const binary = opts.responseType === 'arraybuffer';
     const headers = {
-      Accept: 'application/json',
+      Accept: binary ? '*/*' : 'application/json',
       Authorization: bearer,
       ...opts.headers
     };
@@ -139,9 +147,18 @@ class WatiProvider extends BaseProvider {
       data: hasBody ? opts.data : undefined,
       params: opts.params,
       headers,
-      timeout: opts.timeout ?? this.timeout
+      timeout: opts.timeout ?? this.timeout,
+      responseType: opts.responseType,
+      maxContentLength: opts.maxContentLength,
+      maxBodyLength: opts.maxContentLength
     });
 
+    if (binary) {
+      return {
+        buffer: Buffer.from(response.data),
+        contentType: response.headers?.['content-type'] || null
+      };
+    }
     return response.data;
   }
 }

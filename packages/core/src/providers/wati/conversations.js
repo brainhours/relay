@@ -113,6 +113,33 @@ class WatiConversationsManager {
       accessToken
     });
   }
+
+  /**
+   * List messages of a contact/conversation. Diferente do webhook, cada item
+   * traz o caminho da mídia em `data` (ex: 'data/images/uuid.jpg'), que serve
+   * para baixar via `media.getMedia`. O webhook nem sempre inclui esse caminho.
+   *
+   * Correlação com mensagens já persistidas: os itens NÃO trazem o wamid
+   * (`whatsappMessageId` vem null); casar por `conversationId` + `timestamp`
+   * (unix segundos).
+   *
+   * @param {Object} params
+   * @param {string} params.whatsappNumber - número do contato
+   * @param {number} [params.pageSize=100]
+   * @param {number} [params.pageNumber=1]
+   * @returns {Promise<Object>} `{ result, messages: { items: [...] }, link }`
+   * @see https://docs.wati.io/reference/get_api-v1-getmessages-whatsappnumber
+   */
+  async getMessages({ apiEndpoint, accessToken, whatsappNumber, pageSize = 100, pageNumber = 1 } = {}) {
+    const wa = cleanNumber(whatsappNumber);
+    return this.provider.request({
+      method: 'GET',
+      path: `/api/v1/getMessages/${encodeURIComponent(wa)}`,
+      apiEndpoint,
+      accessToken,
+      params: { pageSize, pageNumber }
+    });
+  }
 }
 
 module.exports = { WatiConversationsManager, VALID_CHAT_STATUSES };
