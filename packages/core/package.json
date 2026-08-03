@@ -57,7 +57,7 @@
     "url": "git+https://github.com/brainhours/relay.git",
     "directory": "packages/core"
   },
-  "author": "Guilherme Goulart <guilherme@leadraze.com>",
+  "author": "Guilherme Goulart <guilherme.goulart@getraze.co>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/brainhours/relay/issues"
