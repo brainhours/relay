@@ -27,16 +27,12 @@ Core package for Relay - unified messaging integrations for Node.js.
 
 ## Installation
 
-### From GitHub Packages
-
 ```bash
-# Configure npm to use GitHub Packages for this scope
-echo "@guilhermegoulart1:registry=https://npm.pkg.github.com" >> .npmrc
-echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN" >> .npmrc
-
-# Install
 npm install @guilhermegoulart1/relay-core
 ```
+
+No registry setup or authentication needed — the package is published publicly
+on [npmjs.com](https://www.npmjs.com/package/@guilhermegoulart1/relay-core).
 
 ### Requirements
 

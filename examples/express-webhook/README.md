@@ -4,22 +4,13 @@ This example demonstrates how to use `@guilhermegoulart1/relay-core` with Expres
 
 ## Setup
 
-### 1. Configure npm for GitHub Packages
-
-Create a `.npmrc` file in this directory:
-
-```
-@guilhermegoulart1:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
-```
-
-### 2. Install dependencies
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Create environment file
+### 2. Create environment file
 
 Create a `.env` file:
 
@@ -29,7 +20,7 @@ UNIPILE_ACCESS_TOKEN=your_access_token_here
 PORT=3000
 ```
 
-### 4. Run the server
+### 3. Run the server
 
 ```bash
 npm start

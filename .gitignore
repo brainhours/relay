@@ -57,3 +57,6 @@ temp/
 # Lock files (using package-lock.json)
 yarn.lock
 pnpm-lock.yaml
+
+# Config local de npm com credenciais (nunca versionar — ver .npmrc)
+.npmrc.local
