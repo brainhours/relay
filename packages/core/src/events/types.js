@@ -13,6 +13,9 @@ const EventTypes = {
   MESSAGE_REACTION: 'message.reaction',
   MESSAGE_FAILED: 'message.failed',
 
+  // Social content events (e.g. Zernio: comment-to-DM funnels)
+  COMMENT_RECEIVED: 'comment.received',
+
   // Relation/connection events
   RELATION_CREATED: 'relation.created',
   RELATION_REMOVED: 'relation.removed',

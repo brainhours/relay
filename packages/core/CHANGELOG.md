@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.0] - 2026-07-27
+
+### Added
+
+- **Zernio — evento `comment.received`, para funis comentário→DM.** Novo
+  `EventTypes.COMMENT_RECEIVED`; antes a família `comment` caía em UNKNOWN e o
+  consumidor tinha que ler `metadata.zernioEvent` na mão. O metadata do
+  comentário passa a trazer `platformPostId` (id de mídia da plataforma, que
+  pode diferir do `post.id` interno — é o que permite casar o comentário com o
+  post-alvo de uma automação), `authorId` e `authorUsername`. `senderId` e
+  `senderName` ganham fallback para `username`, e `providerType` passa a
+  considerar `post.platform` antes do platform da conta.
+
+> Publicada originalmente a partir de uma árvore fora do repositório, e com
+> CRLF. Código reconciliado no repo em 2026-08-03; ver `.gitattributes`.
+
+## [1.24.0] - 2026-07-20
+
+### Added
+
+- **Wati — `messaging.getMessages()` e `media.getMedia()`**, para recuperação de
+  mídia inbound.
+
+> Publicada sem entrada de CHANGELOG na época; documentada retroativamente em
+> 2026-08-03 a partir do commit `b107394`.
+
 ## [1.23.0] - 2026-07-06
 
 ### Fixed

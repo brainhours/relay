@@ -1,0 +1,19 @@
+# Quebra de linha normalizada para LF no repositório.
+#
+# A 1.25.0 foi publicada no registry a partir de uma árvore com CRLF: o tarball
+# saiu com 12 arquivos "alterados" que na verdade só tinham o \r a mais, o que
+# escondeu a única mudança real (comment.received do Zernio) num diff de
+# +2575/-2368. Sem este arquivo, qualquer clone em Windows (ou com
+# core.autocrlf=true) repete o problema no próximo publish.
+* text=auto eol=lf
+
+# Binários — nunca normalizar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.tgz binary
+*.zip binary

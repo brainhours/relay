@@ -23,8 +23,9 @@ const { EventTypes, NormalizedEvent, ProviderTypes } = require('../../events/typ
 
 /**
  * Zernio `event` → normalized EventType. Events without a messaging-centric
- * equivalent (post.*, comment.*, review.*, ad.*) map to UNKNOWN; the raw event
- * is always preserved in `metadata.zernioEvent` so consumers can still branch.
+ * equivalent (post.*, review.*, ad.*) map to UNKNOWN; the raw event is always
+ * preserved in `metadata.zernioEvent` so consumers can still branch.
+ * `comment.received` powers comment-to-DM funnels and maps to COMMENT_RECEIVED.
  */
 const ZERNIO_EVENT_MAP = Object.freeze({
   'message.received': EventTypes.MESSAGE_RECEIVED,
@@ -35,6 +36,7 @@ const ZERNIO_EVENT_MAP = Object.freeze({
   'message.deleted': EventTypes.MESSAGE_DELETED,
   'message.failed': EventTypes.MESSAGE_FAILED,
   'reaction.received': EventTypes.MESSAGE_REACTION,
+  'comment.received': EventTypes.COMMENT_RECEIVED,
   'account.connected': EventTypes.ACCOUNT_CONNECTED,
   'account.disconnected': EventTypes.ACCOUNT_DISCONNECTED,
   'account.ads.initial_sync_completed': EventTypes.ACCOUNT_STATUS_CHANGED,
@@ -173,18 +175,28 @@ function parseZernioWebhook(rawPayload = {}) {
     });
   }
 
-  // ── Comment events ──────────────────────────────────────────────────────────
+  // ── Comment events (comment-to-DM funnels) ──────────────────────────────────
   if (family === 'comment') {
     const c = p.comment || {};
     const post = p.post || {};
-    Object.assign(metadata, { commentId: c.id, postId: post.id, parentId: c.parentId });
+    const author = c.author || {};
+    Object.assign(metadata, {
+      commentId: c.id,
+      postId: post.id,
+      // ID de plataforma da mídia (IG media id) — pode diferir do post.id interno;
+      // usado pra casar o comentário com o post-alvo de uma automação.
+      platformPostId: post.platformPostId || post.platformId || post.mediaId || null,
+      parentId: c.parentId,
+      authorId: author.id || null,
+      authorUsername: author.username || null
+    });
     return new NormalizedEvent({
       ...base,
-      providerType: mapPlatform(c.platform || account.platform),
+      providerType: mapPlatform(c.platform || post.platform || account.platform),
       chatId: post.id || null,
       messageId: c.id || null,
-      senderId: (c.author && (c.author.id || c.author.username)) || null,
-      senderName: (c.author && c.author.name) || null,
+      senderId: author.id || author.username || null,
+      senderName: author.name || author.username || null,
       content: c.text || c.message || '',
       metadata
     });
