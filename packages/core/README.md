@@ -679,23 +679,25 @@ Common error codes:
 
 ---
 
-## TypeScript
+## Module format and TypeScript
 
-Full TypeScript support included:
+This package is **CommonJS only** — use `require()`, not `import`:
+
+```js
+const { UnipileProvider, EventTypes, parseWebhook } = require('@guilhermegoulart1/relay-core');
+```
+
+**Type declarations are not shipped yet.** TypeScript consumers can still use
+the package, but without autocomplete or type checking — add a local
+declaration to silence the resolution error:
 
 ```typescript
-import { UnipileProvider, EventTypes, parseWebhook } from '@guilhermegoulart1/relay-core';
-import type { NormalizedEvent, WebhookPayload } from '@guilhermegoulart1/relay-core';
-
-const provider = new UnipileProvider({
-  dsn: process.env.UNIPILE_DSN!,
-  accessToken: process.env.UNIPILE_ACCESS_TOKEN!
-});
-
-const handleWebhook = (payload: WebhookPayload): NormalizedEvent => {
-  return parseWebhook('unipile', payload);
-};
+// types/relay-core.d.ts
+declare module '@guilhermegoulart1/relay-core';
 ```
+
+The source carries JSDoc on most of the public surface, so generating `.d.ts`
+is planned. Contributions welcome — see [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ---
 

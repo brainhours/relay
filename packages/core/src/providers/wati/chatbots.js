@@ -1,14 +1,15 @@
 /**
  * Wati Chatbots Manager
  *
- * Lista e dispara chatbots/automações criados no painel da Wati. Usado pelo
- * handoff "transferir": em vez de a gente escolher equipe/operador (a Wati não
- * deixa listar esses), o cliente cria um chatbot na Wati que faz o roteamento
- * (pra equipe, com round-robin nativo etc.) e a gente só DISPARA esse chatbot.
+ * Lists and triggers chatbots/automations built in the Wati dashboard. This is
+ * how a "transfer" handoff works: Wati exposes no API to list teams or
+ * operators, so instead of picking one here, the customer builds a chatbot in
+ * Wati that does the routing (to a team, with native round-robin, etc.) and we
+ * only TRIGGER that chatbot.
  *
  * Endpoints (header `Authorization: Bearer <token>`):
- *   GET  /api/v1/chatbots                                   - lista [{ id, name, created }]
- *   POST /api/v1/chatbots/start?chatbotId=&whatsappNumber=  - dispara o chatbot p/ o contato
+ *   GET  /api/v1/chatbots                                   - lists [{ id, name, created }]
+ *   POST /api/v1/chatbots/start?chatbotId=&whatsappNumber=  - triggers the chatbot for a contact
  *
  * @see https://docs.wati.io/reference/get_api-v1-chatbots-1
  * @see https://docs.wati.io/reference/post_api-v1-chatbots-start-1
@@ -24,7 +25,7 @@ class WatiChatbotsManager {
   }
 
   /**
-   * Lista os chatbots do tenant.
+   * Lists the tenant's chatbots.
    * @returns {Promise<Array>} [{ id, name, created }]
    */
   async list({ apiEndpoint, accessToken } = {}) {
@@ -37,11 +38,11 @@ class WatiChatbotsManager {
   }
 
   /**
-   * Dispara um chatbot para o contato (que então assume a conversa na Wati e
-   * roteia conforme a automação configurada lá).
+   * Triggers a chatbot for a contact. The bot then takes over the conversation
+   * inside Wati and routes it per the automation configured there.
    * @param {Object} params
-   * @param {string} params.chatbotId       - id do chatbot (de list())
-   * @param {string} params.whatsappNumber  - telefone do contato (com DDI, dígitos)
+   * @param {string} params.chatbotId       - chatbot id (from list())
+   * @param {string} params.whatsappNumber  - contact phone (country code, digits only)
    * @returns {Promise<Object>} { result: true }
    */
   async start({ apiEndpoint, accessToken, chatbotId, whatsappNumber } = {}) {

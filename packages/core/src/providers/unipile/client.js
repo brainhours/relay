@@ -1358,16 +1358,9 @@ class UnipileMessagingManager {
     const chatsData = await this.getChats({ account_id: accountId, limit: 10 });
     const chats = chatsData.items || chatsData || [];
 
-    console.log(`[getOwnProfileFromChats] accountId=${accountId} ownIdentifier=${ownIdentifier} chats=${chats.length}`);
-
     if (chats.length === 0) {
       return null;
     }
-
-    // Log first chat structure to diagnose attendees field
-    const firstChat = chats[0];
-    console.log(`[getOwnProfileFromChats] firstChat keys: ${Object.keys(firstChat).join(', ')}`);
-    console.log(`[getOwnProfileFromChats] firstChat.attendees: ${JSON.stringify(firstChat.attendees?.slice?.(0, 2) ?? firstChat.attendees ?? 'MISSING')}`);
 
     const findOwnInAttendees = (attendees) => {
       for (const attendee of (attendees || [])) {
@@ -1392,22 +1385,18 @@ class UnipileMessagingManager {
     for (const chat of chats) {
       const found = findOwnInAttendees(chat.attendees);
       if (found) {
-        console.log(`[getOwnProfileFromChats] Found own attendee in chat list (is_self=${found.is_self})`);
         return await this._buildOwnProfileResult(found, ownIdentifier);
       }
     }
 
     // Pass 2: fetch attendees via dedicated /chats/{id}/attendees endpoint
-    console.log(`[getOwnProfileFromChats] No attendees in list response, fetching via /chats/{id}/attendees...`);
     for (const chat of chats.slice(0, 5)) {
       const chatId = chat.id || chat.chat_id;
       if (!chatId) continue;
       try {
         const attendees = await this.getChatAttendees({ account_id: accountId, chat_id: chatId });
-        console.log(`[getOwnProfileFromChats] chat ${chatId} attendees count: ${attendees.length}, sample: ${JSON.stringify(attendees.slice(0, 2))}`);
         const found = findOwnInAttendees(attendees);
         if (found) {
-          console.log(`[getOwnProfileFromChats] Found own attendee via /chats/${chatId}/attendees`);
           return await this._buildOwnProfileResult(found, ownIdentifier);
         }
       } catch (e) {

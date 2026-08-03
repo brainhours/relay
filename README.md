@@ -5,6 +5,12 @@
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/@guilhermegoulart1/relay-core"><img src="https://img.shields.io/npm/v/@guilhermegoulart1/relay-core.svg" alt="npm version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/@guilhermegoulart1/relay-core.svg" alt="license"></a>
+  <img src="https://img.shields.io/node/v/@guilhermegoulart1/relay-core.svg" alt="node version">
+</p>
+
+<p align="center">
   <a href="#features">Features</a> •
   <a href="#packages">Packages</a> •
   <a href="#quick-start">Quick Start</a> •
@@ -21,7 +27,7 @@
 - **Webhook handling** - Built-in parsing, validation, and queue management
 - **Channel agnostic** - LinkedIn, WhatsApp, Instagram, Telegram, SMS, Email
 - **Production ready** - Battle-tested in high-volume B2B applications
-- **TypeScript support** - Full type definitions included
+- **Zero-config install** - Two runtime dependencies (`axios`, `form-data`); everything else is an optional peer
 
 ---
 

@@ -130,13 +130,14 @@ function parseZernioWebhook(rawPayload = {}) {
   }
 
   // ── WhatsApp template status events ─────────────────────────────────────────
-  // `whatsapp.template.*` (ex.: whatsapp.template.status_updated) carrega uma
-  // entidade `template` — NÃO um `account`. Tem que ser tratado ANTES do branch
-  // de account/whatsapp abaixo, que senão engole o evento e descarta os campos do
-  // template (templateId/newStatus/reason). Shape passthrough: toleramos variações
-  // de nome de campo (id/_id/templateId, name/templateName, status/newStatus,
-  // rejectionReason/reason). `metaTemplateId` é exposto separado pra quem casa por
-  // id da Meta; `templateName` costuma ser a chave mais estável (única por WABA).
+  // `whatsapp.template.*` (e.g. whatsapp.template.status_updated) carries a
+  // `template` entity — NOT an `account`. It must be handled BEFORE the
+  // account/whatsapp branch below, which would otherwise swallow the event and
+  // discard the template fields (templateId/newStatus/reason). Shape is
+  // pass-through: field name variations are tolerated (id/_id/templateId,
+  // name/templateName, status/newStatus, rejectionReason/reason).
+  // `metaTemplateId` is exposed separately for consumers matching on Meta's id;
+  // `templateName` tends to be the more stable key (unique per WABA).
   if (family === 'whatsapp' && String(event).startsWith('whatsapp.template')) {
     const tpl = p.template || (p.whatsapp && p.whatsapp.template) || p.data || {};
     Object.assign(metadata, {
@@ -183,8 +184,8 @@ function parseZernioWebhook(rawPayload = {}) {
     Object.assign(metadata, {
       commentId: c.id,
       postId: post.id,
-      // ID de plataforma da mídia (IG media id) — pode diferir do post.id interno;
-      // usado pra casar o comentário com o post-alvo de uma automação.
+      // Platform-side media id (e.g. the IG media id) — may differ from the
+      // internal post.id; used to match a comment to an automation's target post.
       platformPostId: post.platformPostId || post.platformId || post.mediaId || null,
       parentId: c.parentId,
       authorId: author.id || null,
@@ -234,10 +235,11 @@ function parseZernioWebhook(rawPayload = {}) {
 }
 
 /**
- * Normalize a Zernio attachments array. Preserva `type` (categoria semântica:
- * image/video/audio/file) E `originalType` (ex.: ig_reel, ig_story) — o consumer
- * precisa distinguir mídia direta de post/reel compartilhado (link permanente,
- * não baixável como arquivo). `payload` carrega título/url do share.
+ * Normalize a Zernio attachments array. Preserves both `type` (semantic
+ * category: image/video/audio/file) AND `originalType` (e.g. ig_reel,
+ * ig_story) — consumers need to tell direct media apart from a shared
+ * post/reel, which is a permalink and not downloadable as a file. `payload`
+ * carries the share's title/url.
  */
 function normalizeAttachments(attachments) {
   if (!Array.isArray(attachments)) return [];

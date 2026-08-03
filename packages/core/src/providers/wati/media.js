@@ -1,10 +1,10 @@
 /**
  * Wati Media Manager
  *
- * A mídia de mensagens do Wati fica no servidor do tenant e exige o Bearer para
- * baixar — não é um link público. O caminho do arquivo (`fileName`) vem no
- * campo `data` de cada item de `conversations.getMessages` (ex:
- * 'data/images/uuid.jpg'). Aqui a gente busca os bytes.
+ * Wati message media lives on the tenant's server and requires the Bearer token
+ * to download — it is not a public link. The file path (`fileName`) comes in the
+ * `data` field of each item from `conversations.getMessages` (e.g.
+ * 'data/images/uuid.jpg'). This fetches the bytes.
  *
  * @see https://docs.wati.io/   (GET /api/v1/getMedia?fileName=...)
  */
@@ -15,18 +15,18 @@ class WatiMediaManager {
   }
 
   /**
-   * Baixa um arquivo de mídia pelo caminho retornado em getMessages.
+   * Downloads a media file by the path returned from getMessages.
    *
    * @param {Object} params
-   * @param {string} params.fileName        - caminho vindo de getMessages `data`
-   *                                           (ex: 'data/images/uuid.jpg'; um
-   *                                           '/' inicial é tolerado).
-   * @param {number} [params.maxBytes]       - teto de tamanho (bytes).
+   * @param {string} params.fileName        - path from getMessages `data`
+   *                                           (e.g. 'data/images/uuid.jpg'; a
+   *                                           leading '/' is tolerated).
+   * @param {number} [params.maxBytes]       - size cap (bytes).
    * @returns {Promise<{ buffer: Buffer, mimeType: string|null }>}
    */
   async getMedia({ apiEndpoint, accessToken, fileName, maxBytes } = {}) {
     if (!fileName) throw new Error('Wati.media.getMedia: fileName is required');
-    // getMessages às vezes devolve o caminho com '/' inicial; a API não quer.
+    // getMessages sometimes returns the path with a leading '/'; the API rejects it.
     const normalized = String(fileName).replace(/^\/+/, '');
 
     const res = await this.provider.request({

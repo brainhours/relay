@@ -79,28 +79,28 @@ class WatiConversationsManager {
 
   /**
    * Assign a chat to Wati TEAM(S) by NAME — Wati runs its OWN distribution
-   * (round-robin) to operators within the team. Atribui ao CHAT (remove equipes
-   * anteriores automaticamente). É o "transferir pra fila".
+   * (round-robin) to operators within the team. Assigns to the CHAT (previous
+   * teams are removed automatically). This is the "transfer to queue" action.
    *
-   * ⚠️ Requer plano Pro da Wati.
+   * ⚠️ Requires a Wati Pro plan.
    *
-   * Params via query (estilo v1, igual assignOperator):
-   *   teams (array<string>, obrigatório), whatsappNumber OU target,
-   *   channelPhoneNumber (multi-número).
+   * Params go in the query string (v1 style, same as assignOperator):
+   *   teams (array<string>, required), whatsappNumber OR target,
+   *   channelPhoneNumber (multi-number accounts).
    *
    * @param {Object} params
-   * @param {string[]} params.teams              - nomes das equipes (ex.: ['Suporte'])
-   * @param {string} [params.whatsappNumber]     - telefone do contato do chat
-   * @param {string} [params.target]             - id/telefone/BSUID (precede whatsappNumber)
-   * @param {string} [params.channelPhoneNumber] - número do canal (multi-número)
+   * @param {string[]} params.teams              - team names (e.g. ['Support'])
+   * @param {string} [params.whatsappNumber]     - phone of the chat's contact
+   * @param {string} [params.target]             - id/phone/BSUID (takes precedence over whatsappNumber)
+   * @param {string} [params.channelPhoneNumber] - channel number (multi-number accounts)
    * @returns {Promise<Object>} 200 OK
    * @see https://docs.wati.io/reference/post_api-v1-assignteam
    */
   async assignTeams({ apiEndpoint, accessToken, teams, whatsappNumber, target, channelPhoneNumber } = {}) {
     const teamList = Array.isArray(teams) ? teams : [teams].filter(Boolean);
-    // `teams` é array<string> em query → serializa repetido (teams=a&teams=b),
-    // formato esperado pela Wati. Montamos a query explicitamente pra não
-    // depender da serialização default do axios (que usaria teams[]=).
+    // `teams` is an array<string> in the query → serialized as repeated keys
+    // (teams=a&teams=b), which is what Wati expects. Built explicitly instead
+    // of relying on axios' default serialization, which would emit teams[]=.
     const qp = teamList.map((tm) => `teams=${encodeURIComponent(tm)}`);
     if (target) qp.push(`target=${encodeURIComponent(target)}`);
     else if (whatsappNumber) qp.push(`whatsappNumber=${encodeURIComponent(cleanNumber(whatsappNumber))}`);
@@ -115,16 +115,16 @@ class WatiConversationsManager {
   }
 
   /**
-   * List messages of a contact/conversation. Diferente do webhook, cada item
-   * traz o caminho da mídia em `data` (ex: 'data/images/uuid.jpg'), que serve
-   * para baixar via `media.getMedia`. O webhook nem sempre inclui esse caminho.
+   * List messages of a contact/conversation. Unlike the webhook, each item
+   * carries the media path in `data` (e.g. 'data/images/uuid.jpg'), which is
+   * what `media.getMedia` downloads. The webhook does not always include it.
    *
-   * Correlação com mensagens já persistidas: os itens NÃO trazem o wamid
-   * (`whatsappMessageId` vem null); casar por `conversationId` + `timestamp`
-   * (unix segundos).
+   * Correlating with already-persisted messages: items do NOT carry the wamid
+   * (`whatsappMessageId` comes back null); match on `conversationId` +
+   * `timestamp` (unix seconds) instead.
    *
    * @param {Object} params
-   * @param {string} params.whatsappNumber - número do contato
+   * @param {string} params.whatsappNumber - contact phone number
    * @param {number} [params.pageSize=100]
    * @param {number} [params.pageNumber=1]
    * @returns {Promise<Object>} `{ result, messages: { items: [...] }, link }`

@@ -51,7 +51,7 @@ class UnipileWebhookManager {
       source
     };
 
-    // account_ids é um array de IDs de contas para filtrar
+    // account_ids is an array of account IDs used to scope the webhook
     if (account_ids && account_ids.length > 0) {
       body.account_ids = account_ids;
     }
@@ -60,10 +60,11 @@ class UnipileWebhookManager {
       body.headers = headers;
     }
 
-    // ⚠️ Reenvia a config rica do webhook. Unipile não tem endpoint de UPDATE, então
-    // add/removeAccount fazem DELETE+CREATE; sem reenviar events/data o webhook recriado
-    // perde a seleção de eventos (cai no default `message_received`) e o mapeamento de
-    // payload. `name`/`format` preservam identificação e formato. (incidente 2026-06-25)
+    // ⚠️ Resend the webhook's full config. Unipile has no UPDATE endpoint, so
+    // add/removeAccount do DELETE+CREATE; without resending events/data the
+    // recreated webhook loses its event selection (falling back to the default
+    // `message_received`) and its payload mapping. `name`/`format` preserve
+    // identity and format. (Caused a production incident on 2026-06-25.)
     if (events && events.length > 0) {
       body.events = events;
     }
@@ -284,9 +285,10 @@ class UnipileWebhookManager {
     const currentAccountIds = webhook.account_ids || [];
     const currentIds = currentAccountIds.map(a => typeof a === 'string' ? a : a.id);
 
-    // ⚠️ account_ids vazio = webhook ALL-ACCOUNTS (já cobre toda conta). Adicionar
-    // uma conta aqui ESTREITARIA o webhook (via DELETE+CREATE) para [1 conta] e
-    // quebraria todas as outras. No-op proposital. (incidente 2026-06-25)
+    // ⚠️ An empty account_ids means an ALL-ACCOUNTS webhook (already covers
+    // every account). Adding one account here would NARROW the webhook (via
+    // DELETE+CREATE) down to that single account and break all the others.
+    // Deliberate no-op. (Caused a production incident on 2026-06-25.)
     if (currentIds.length === 0) {
       return { webhook, added: false, allAccounts: true };
     }
@@ -340,10 +342,11 @@ class UnipileWebhookManager {
     const currentAccountIds = webhook.account_ids || [];
     const currentIds = currentAccountIds.map(a => typeof a === 'string' ? a : a.id);
 
-    // ⚠️ account_ids vazio = webhook ALL-ACCOUNTS. Remover 1 conta de "todas" não é
-    // expressável via account_ids, e o DELETE+CREATE perderia a cobertura global.
-    // No-op proposital — a conta deixa de receber eventos quando é desconectada do
-    // Unipile, não aqui. (incidente 2026-06-25)
+    // ⚠️ An empty account_ids means an ALL-ACCOUNTS webhook. Removing one
+    // account from "all" cannot be expressed via account_ids, and DELETE+CREATE
+    // would drop the global coverage. Deliberate no-op — the account stops
+    // receiving events when it is disconnected in Unipile, not here.
+    // (Caused a production incident on 2026-06-25.)
     if (currentIds.length === 0) {
       return { webhook, removed: false, allAccounts: true };
     }
