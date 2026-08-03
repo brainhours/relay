@@ -17,7 +17,7 @@
  *
  * One POST may carry MANY events (Meta batches up to 100 messages per change).
  * `parseCloudApiWebhook` therefore returns an ARRAY of NormalizedEvent —
- * different from Unipile/Uazapi/Webchat parsers which are 1:1.
+ * different from Unipile/Uazapi parsers which are 1:1.
  *
  * Apps should iterate the array and emit each event on their MessagingEventEmitter.
  *

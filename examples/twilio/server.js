@@ -57,7 +57,7 @@ if (!twilio.isInitialized()) {
 }
 
 // ---------------------------------------------------------------------------
-// Emitter — same shape as Unipile/Uazapi/Cloud API/Webchat handlers
+// Emitter — same shape as Unipile/Uazapi/Cloud API handlers
 // ---------------------------------------------------------------------------
 
 const emitter = new MessagingEventEmitter();

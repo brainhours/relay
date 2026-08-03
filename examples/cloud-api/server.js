@@ -43,7 +43,7 @@ const meta = new MetaCloudApiProvider({
 });
 
 // ---------------------------------------------------------------------------
-// Emitter — same shape as Unipile/Uazapi/Webchat handlers
+// Emitter — same shape as Unipile/Uazapi handlers
 // ---------------------------------------------------------------------------
 
 const emitter = new MessagingEventEmitter();

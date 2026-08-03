@@ -22,7 +22,7 @@
 
 ## Features
 
-- **Multi-provider support** - Unipile (LinkedIn / WhatsApp / Email / …), Uazapi (WhatsApp BR), Meta Cloud API (official WhatsApp), Twilio (SMS / MMS / WhatsApp), Zernio (social publishing + inbox + ads across 15 channels), and first-party Webchat
+- **Multi-provider support** - Unipile (LinkedIn / WhatsApp / Email / …), Uazapi (WhatsApp BR), Meta Cloud API (official WhatsApp), Twilio (SMS / MMS / WhatsApp), Zernio (social publishing + inbox + ads across 15 channels)
 - **Normalized events** - Consistent event format across all messaging providers
 - **Webhook handling** - Built-in parsing, validation, and queue management
 - **Channel agnostic** - LinkedIn, WhatsApp, Instagram, Telegram, SMS, Email
@@ -35,8 +35,7 @@
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [@brainhours/relay-core](./packages/core) | 1.10.0 | Core messaging integrations (Unipile + Uazapi + Meta Cloud API + Webchat) |
-| [@brainhours/relay-webchat-widget](./packages/webchat-widget) | 1.0.0 | Embeddable webchat widget (vanilla JS, transport-pluggable) |
+| [@brainhours/relay-core](./packages/core) | 1.10.0 | Core messaging integrations (Unipile + Uazapi + Meta Cloud API + Wati + Twilio + Zernio) |
 
 ---
 
@@ -104,7 +103,6 @@ app.post('/webhooks/unipile', (req, res) => {
 | WhatsApp | Unipile | Stable |
 | WhatsApp (BR API) | Uazapi | Stable (v1.8.0+) |
 | WhatsApp (Meta official) | Cloud API | Stable (v1.10.0+) |
-| Webchat (your site) | Webchat | Stable (v1.9.0+) |
 | Instagram | Unipile | Stable |
 | Telegram | Unipile | Stable |
 | Messenger | Unipile | Stable |
@@ -175,54 +173,6 @@ await meta.messaging.sendTemplate({
 ```
 
 See [examples/cloud-api](./examples/cloud-api) for the full setup.
-
-### Webchat (first-party embeddable chat) quick start
-
-Zero external dependencies — works with just Express + Node:
-
-```javascript
-const express = require('express');
-const {
-  createWebchatHandler,
-  InMemoryWebchatStorage,
-  SSERealtimeAdapter,
-  MessagingEventEmitter,
-  EventTypes
-} = require('@brainhours/relay-core');
-
-const storage = new InMemoryWebchatStorage();
-storage.seedChannel({ widgetKey: 'demo', accountId: 'acc-1' });
-
-const realtime = new SSERealtimeAdapter();
-const emitter = new MessagingEventEmitter();
-
-emitter.on(EventTypes.MESSAGE_RECEIVED, (event) => {
-  if (event.providerType !== 'WEBCHAT') return;
-  console.log(`visitor: ${event.content}`);
-  // Same emitter handles Unipile + Uazapi too — filter by providerType.
-});
-
-const app = express();
-app.use('/api/public/webchat', createWebchatHandler({ storage, realtime, emitter }));
-app.listen(3000);
-```
-
-Then embed the widget on your customer's site:
-
-```html
-<script
-  src="https://your-app.com/widget/dist/widget.js"
-  data-widget-key="demo"
-  data-api-url="https://your-app.com"
-  defer
-></script>
-```
-
-For production: write your own `WebchatStorageAdapter` against your DB (Postgres /
-Mongo / etc.) and pick a realtime adapter (default SSE for single-process,
-custom for Ably / Pusher / Redis / WebSocket). See
-[examples/webchat](./examples/webchat) and
-[examples/webchat-ably](./examples/webchat-ably).
 
 ### Uazapi (WhatsApp) quick start
 

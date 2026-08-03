@@ -1,7 +1,7 @@
 {
   "name": "@brainhours/relay-core",
-  "version": "1.25.1",
-  "description": "Core messaging integrations - Unipile, Uazapi (WhatsApp), Meta Cloud API (official WhatsApp), Wati (WhatsApp Business), Twilio (SMS/WhatsApp), Zernio (social publishing + inbox + ads), Webchat and more",
+  "version": "2.0.0",
+  "description": "Core messaging integrations - Unipile, Uazapi (WhatsApp), Meta Cloud API (official WhatsApp), Wati (WhatsApp Business), Twilio (SMS/WhatsApp), Zernio (social publishing + inbox + ads) and more",
   "main": "src/index.js",
   "exports": {
     ".": {
@@ -12,9 +12,6 @@
     },
     "./providers/uazapi": {
       "require": "./src/providers/uazapi/index.js"
-    },
-    "./providers/webchat": {
-      "require": "./src/providers/webchat/index.js"
     },
     "./providers/cloud-api": {
       "require": "./src/providers/cloud-api/index.js"

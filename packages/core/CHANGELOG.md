@@ -13,6 +13,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > continuous — the entries below apply to both names. Update your dependency to
 > `@brainhours/relay-core`; the old name receives no further releases.
 
+## [2.0.0] - 2026-08-03
+
+### Removed
+
+- **BREAKING — o provider de Webchat saiu do pacote.** Diferente dos demais, o
+  webchat nunca foi um wrapper de API de terceiro: era um servidor de chat que
+  o app consumidor teria que hospedar, com storage e realtime implementados por
+  ele. Na prática ninguém adotou — quem precisou de webchat escreveu o próprio,
+  direto contra o próprio banco, e o `WebchatProvider` daqui ficou como código
+  morto (10% do pacote).
+
+  Some do export raiz: `WebchatProvider`, `WebchatMessagingManager`,
+  `createWebchatHandler`, `WebchatStorageAdapter`, `WebchatRealtimeAdapter`,
+  `SSERealtimeAdapter`, `InMemoryWebchatStorage`, `parseWebchatWebhook`,
+  `validateWebchatSignature`, `generateWebchatWebhookJobId`,
+  `generateVisitorToken`, `isValidVisitorTokenFormat`. Some também o subpath
+  `@brainhours/relay-core/providers/webchat`, o pacote irmão
+  `@brainhours/relay-webchat-widget` (nunca publicado no npmjs) e os exemplos
+  `examples/webchat*`.
+
+  **`ProviderTypes.WEBCHAT` continua existindo.** Ele nomeia o canal, não o
+  provider — quem roda webchat próprio segue normalizando eventos com ele.
+
+  **Migração:** se você usava o handler ou os adapters, eles não têm
+  substituto aqui; webchat passa a ser responsabilidade do app. As demais
+  APIs do pacote não mudaram — atualizar de 1.25.1 para 2.0.0 sem tocar em
+  webchat é troca direta.
+
 ## [1.25.1] - 2026-08-03
 
 ### Fixed

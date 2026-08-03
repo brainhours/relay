@@ -14,11 +14,6 @@ const {
   parseUazapiWebhook,
   validateUazapiSignature
 } = require('./uazapi/webhooks');
-const { WebchatProvider } = require('./webchat/client');
-const {
-  parseWebchatWebhook,
-  validateWebchatSignature
-} = require('./webchat/webhooks');
 const { MetaCloudApiProvider } = require('./cloud-api/client');
 const {
   parseCloudApiWebhook,
@@ -46,7 +41,6 @@ const {
 const providers = {
   unipile: UnipileProvider,
   uazapi: UazapiProvider,
-  webchat: WebchatProvider,
   'cloud-api': MetaCloudApiProvider,
   wati: WatiProvider,
   twilio: TwilioProvider,
@@ -83,8 +77,6 @@ function parseWebhook(providerName, rawPayload) {
       return parseUnipileWebhook(rawPayload);
     case 'uazapi':
       return parseUazapiWebhook(rawPayload);
-    case 'webchat':
-      return parseWebchatWebhook(rawPayload);
     case 'cloud-api':
       return parseCloudApiWebhook(rawPayload);
     case 'wati':
@@ -116,8 +108,6 @@ function validateWebhookSignature(providerName, payload, signature, secret) {
       return validateUnipileSignature(payload, signature, secret);
     case 'uazapi':
       return validateUazapiSignature(payload, signature, secret);
-    case 'webchat':
-      return validateWebchatSignature(payload, signature, secret);
     case 'cloud-api':
       return validateCloudApiSignature(payload, signature, secret);
     case 'wati':
@@ -140,7 +130,6 @@ module.exports = {
   BaseProvider,
   UnipileProvider,
   UazapiProvider,
-  WebchatProvider,
   MetaCloudApiProvider,
   WatiProvider,
   TwilioProvider,

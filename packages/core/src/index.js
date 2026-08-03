@@ -34,7 +34,6 @@ const {
   BaseProvider,
   UnipileProvider,
   UazapiProvider,
-  WebchatProvider,
   MetaCloudApiProvider,
   WatiProvider,
   TwilioProvider,
@@ -128,21 +127,6 @@ const {
   isInWindow
 } = require('./providers/cloud-api');
 
-// Webchat sub-modules (v1.9.0+)
-const {
-  WebchatMessagingManager,
-  createWebchatHandler,
-  WebchatStorageAdapter,
-  WebchatRealtimeAdapter,
-  SSERealtimeAdapter,
-  InMemoryWebchatStorage,
-  parseWebchatWebhook,
-  validateWebchatSignature,
-  generateWebhookJobId: generateWebchatWebhookJobId,
-  generateVisitorToken,
-  isValidVisitorTokenFormat
-} = require('./providers/webchat');
-
 // Unipile sub-modules (v1.3.0+)
 const {
   UnipilePostsManager,
@@ -206,7 +190,6 @@ module.exports = {
   BaseProvider,
   UnipileProvider,
   UazapiProvider,
-  WebchatProvider,
   MetaCloudApiProvider,
   WatiProvider,
   TwilioProvider,
@@ -290,19 +273,6 @@ module.exports = {
   effectiveDailyLimit,
   stableVariant,
   isInWindow,
-
-  // Webchat (v1.9.0+)
-  WebchatMessagingManager,
-  createWebchatHandler,
-  WebchatStorageAdapter,
-  WebchatRealtimeAdapter,
-  SSERealtimeAdapter,
-  InMemoryWebchatStorage,
-  parseWebchatWebhook,
-  validateWebchatSignature,
-  generateWebchatWebhookJobId,
-  generateVisitorToken,
-  isValidVisitorTokenFormat,
 
   // Unipile managers (v1.3.0+)
   UnipilePostsManager,
