@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.1] - 2026-08-03
+
+### Fixed
+
+- **`types` apontava para um arquivo que não existe.** `package.json` declarava
+  `"types": "src/index.d.ts"` (e o mesmo em `exports["."]`), mas `src/index.d.ts`
+  nunca foi versionado — consumidores em TypeScript quebravam ao resolver o
+  pacote. As duas referências foram removidas; o pacote é JS puro e passa a se
+  declarar como tal. Tipagem gerada a partir do JSDoc fica para uma versão
+  futura.
+
 ## [1.25.0] - 2026-07-27
 
 ### Added
