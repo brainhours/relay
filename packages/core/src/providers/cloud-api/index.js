@@ -8,7 +8,7 @@
  *   const {
  *     MetaCloudApiProvider, parseCloudApiWebhook, validateCloudApiSignature,
  *     MessagingEventEmitter, EventTypes
- *   } = require('@guilhermegoulart1/relay-core');
+ *   } = require('@brainhours/relay-core');
  *
  *   const meta = new MetaCloudApiProvider({
  *     apiVersion: 'v22.0',

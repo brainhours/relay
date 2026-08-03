@@ -6,7 +6,7 @@
 > starting point.
 
 The Relay deliberately ships only the SSE realtime adapter in
-`@guilhermegoulart1/relay-core`. Paid third-party services (Ably, Pusher,
+`@brainhours/relay-core`. Paid third-party services (Ably, Pusher,
 PubNub, ...) live as application-level adapters because Relay shouldn't
 recommend or default to a paid stack.
 

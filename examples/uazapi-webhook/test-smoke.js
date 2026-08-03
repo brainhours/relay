@@ -15,7 +15,7 @@ const {
   EventTypes,
   ProviderTypes,
   UazapiProvider
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 let passed = 0;
 let failed = 0;

@@ -21,7 +21,7 @@
  *   const {
  *     createWebchatHandler, InMemoryWebchatStorage, SSERealtimeAdapter,
  *     MessagingEventEmitter, EventTypes
- *   } = require('@guilhermegoulart1/relay-core');
+ *   } = require('@brainhours/relay-core');
  *
  *   const storage = new InMemoryWebchatStorage();
  *   storage.seedChannel({ widgetKey: 'demo', accountId: 'acc-1' });

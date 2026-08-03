@@ -2,7 +2,7 @@
   "name": "relay-uazapi-example",
   "version": "1.0.0",
   "private": true,
-  "description": "Example Express app for the Uazapi (WhatsApp) provider in @guilhermegoulart1/relay-core",
+  "description": "Example Express app for the Uazapi (WhatsApp) provider in @brainhours/relay-core",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -10,7 +10,7 @@
     "test:smoke": "node test-smoke.js"
   },
   "dependencies": {
-    "@guilhermegoulart1/relay-core": "^1.8.0",
+    "@brainhours/relay-core": "^1.8.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2"
   }

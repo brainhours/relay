@@ -9,7 +9,7 @@
  *   const {
  *     TwilioProvider, parseTwilioWebhook, validateTwilioSignature,
  *     messagingResponse, MessagingEventEmitter, EventTypes
- *   } = require('@guilhermegoulart1/relay-core');
+ *   } = require('@brainhours/relay-core');
  *
  *   const twilio = new TwilioProvider({
  *     accountSid: process.env.TWILIO_ACCOUNT_SID,

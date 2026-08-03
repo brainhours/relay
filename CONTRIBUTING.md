@@ -58,7 +58,7 @@ npm run lint
 ```
 relay/
 ├── packages/
-│   └── core/              # @guilhermegoulart1/relay-core package
+│   └── core/              # @brainhours/relay-core package
 │       └── src/
 │           ├── providers/ # Provider implementations
 │           ├── events/    # Event system

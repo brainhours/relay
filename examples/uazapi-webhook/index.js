@@ -18,7 +18,7 @@ const {
   parseWebhook,
   EventTypes,
   MessagingEventEmitter
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 // ---------------------------------------------------------------------------
 // Provider setup — supports both single-server and multi-server modes via env

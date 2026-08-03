@@ -1,5 +1,5 @@
 /**
- * Example: Express Webhook Handler with @guilhermegoulart1/relay-core
+ * Example: Express Webhook Handler with @brainhours/relay-core
  *
  * This example shows how to:
  * 1. Initialize the Unipile provider
@@ -15,7 +15,7 @@ const {
   parseWebhook,
   EventTypes,
   MessagingEventEmitter
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 // Initialize Express
 const app = express();

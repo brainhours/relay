@@ -5,7 +5,7 @@ Relay normalizes events from all providers into a consistent format.
 ## Event Types
 
 ```javascript
-const { EventTypes } = require('@guilhermegoulart1/relay-core');
+const { EventTypes } = require('@brainhours/relay-core');
 
 // Message events
 EventTypes.MESSAGE_RECEIVED     // Incoming message
@@ -35,7 +35,7 @@ EventTypes.ACCOUNT_STATUS          // Account status update
 Use `parseWebhook` to normalize incoming webhook payloads:
 
 ```javascript
-const { parseWebhook, EventTypes } = require('@guilhermegoulart1/relay-core');
+const { parseWebhook, EventTypes } = require('@brainhours/relay-core');
 
 app.post('/webhooks/unipile', (req, res) => {
   const event = parseWebhook('unipile', req.body);
@@ -94,7 +94,7 @@ event.toJSON();            // Plain object representation
 ## Provider Types
 
 ```javascript
-const { ProviderTypes } = require('@guilhermegoulart1/relay-core');
+const { ProviderTypes } = require('@brainhours/relay-core');
 
 ProviderTypes.LINKEDIN
 ProviderTypes.WHATSAPP
@@ -210,7 +210,7 @@ Unipile delivers events with the type as the JSON key, e.g.
 Use `MessagingEventEmitter` for event-driven handling:
 
 ```javascript
-const { MessagingEventEmitter, EventTypes, parseWebhook } = require('@guilhermegoulart1/relay-core');
+const { MessagingEventEmitter, EventTypes, parseWebhook } = require('@brainhours/relay-core');
 
 const emitter = new MessagingEventEmitter();
 
@@ -244,7 +244,7 @@ emitter.removeAllListeners();
 Use the singleton emitter for simple applications:
 
 ```javascript
-const { getDefaultEmitter, EventTypes } = require('@guilhermegoulart1/relay-core');
+const { getDefaultEmitter, EventTypes } = require('@brainhours/relay-core');
 
 const emitter = getDefaultEmitter();
 emitter.on(EventTypes.MESSAGE_RECEIVED, handler);
@@ -259,7 +259,7 @@ const {
   parseWebhook,
   EventTypes,
   MessagingEventEmitter
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 require('dotenv').config();
 
 const app = express();

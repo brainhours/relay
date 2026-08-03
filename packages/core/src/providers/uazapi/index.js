@@ -6,7 +6,7 @@
  * the provider routes calls to the right server using a pluggable strategy.
  *
  * @example  Single server
- * const { UazapiProvider } = require('@guilhermegoulart1/relay-core');
+ * const { UazapiProvider } = require('@brainhours/relay-core');
  *
  * const uazapi = new UazapiProvider({
  *   baseUrl: process.env.UAZ_BASE_URL,        // e.g. 'https://free.uazapi.com'

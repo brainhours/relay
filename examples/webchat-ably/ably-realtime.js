@@ -11,7 +11,7 @@
  * WebSocket servers, etc. Just adapt the publish / token-request calls.
  */
 
-const { WebchatRealtimeAdapter } = require('@guilhermegoulart1/relay-core');
+const { WebchatRealtimeAdapter } = require('@brainhours/relay-core');
 
 class AblyWebchatRealtime extends WebchatRealtimeAdapter {
   /**

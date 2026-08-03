@@ -15,7 +15,7 @@
  *
  * @example
  *   const { WebchatProvider, InMemoryWebchatStorage, SSERealtimeAdapter,
- *           MessagingEventEmitter } = require('@guilhermegoulart1/relay-core');
+ *           MessagingEventEmitter } = require('@brainhours/relay-core');
  *
  *   const webchat = new WebchatProvider({
  *     storage: new InMemoryWebchatStorage(),

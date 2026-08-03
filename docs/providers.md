@@ -17,7 +17,7 @@ Relay supports multiple messaging providers through a unified interface.
 ### Configuration
 
 ```javascript
-const { UnipileProvider } = require('@guilhermegoulart1/relay-core');
+const { UnipileProvider } = require('@brainhours/relay-core');
 
 const provider = new UnipileProvider({
   dsn: 'api1.unipile.com:13111',     // Your Unipile DSN
@@ -316,7 +316,7 @@ passes them back on every subsequent call.
 ### Configuration
 
 ```javascript
-const { UazapiProvider } = require('@guilhermegoulart1/relay-core');
+const { UazapiProvider } = require('@brainhours/relay-core');
 
 // Single-server (simplest form)
 const uazapi = new UazapiProvider({
@@ -457,7 +457,7 @@ Uazapi POSTs `{ event, instance, data }` to your webhook URL. Use
 `parseWebhook('uazapi', body)` to normalize:
 
 ```javascript
-const { parseWebhook, EventTypes } = require('@guilhermegoulart1/relay-core');
+const { parseWebhook, EventTypes } = require('@brainhours/relay-core');
 
 app.post('/webhooks/uazapi', (req, res) => {
   const event = parseWebhook('uazapi', req.body);
@@ -525,7 +525,7 @@ via per-call credentials.
 ### Configuration
 
 ```javascript
-const { MetaCloudApiProvider } = require('@guilhermegoulart1/relay-core');
+const { MetaCloudApiProvider } = require('@brainhours/relay-core');
 
 const meta = new MetaCloudApiProvider({
   apiVersion: 'v22.0',                       // optional, default 'v22.0'
@@ -610,7 +610,7 @@ await meta.messaging.sendMedia({
 Every Cloud API failure is thrown as `MetaApiError` with all Meta fields preserved:
 
 ```javascript
-const { MetaApiError, META_ERROR_CODES } = require('@guilhermegoulart1/relay-core');
+const { MetaApiError, META_ERROR_CODES } = require('@brainhours/relay-core');
 
 try {
   await meta.messaging.sendTemplate({ ... });
@@ -669,7 +669,7 @@ Cloud API webhooks need TWO things from the app:
 
 ```javascript
 const { parseCloudApiWebhook, validateCloudApiSignature } =
-  require('@guilhermegoulart1/relay-core');
+  require('@brainhours/relay-core');
 
 app.use('/webhooks/meta', express.json({
   verify: (req, _res, buf) => { req.rawBody = buf; }
@@ -718,7 +718,7 @@ app.post('/webhooks/meta', (req, res) => {
 
 ```javascript
 const { effectiveDailyLimit, stableVariant, isInWindow } =
-  require('@guilhermegoulart1/relay-core');
+  require('@brainhours/relay-core');
 
 // Pace your dispatcher 80% below Meta's tier
 const cap = effectiveDailyLimit(tier);
@@ -784,7 +784,7 @@ credentials, which is exactly how Twilio **subaccounts** work.
 ### Configuration
 
 ```javascript
-const { TwilioProvider } = require('@guilhermegoulart1/relay-core');
+const { TwilioProvider } = require('@brainhours/relay-core');
 
 const twilio = new TwilioProvider({
   accountSid: process.env.TWILIO_ACCOUNT_SID,   // AC… (required, or per-call)
@@ -872,7 +872,7 @@ Every synchronous Twilio failure is thrown as `TwilioApiError` with all Twilio
 fields preserved:
 
 ```javascript
-const { TwilioApiError, TWILIO_ERROR_CODES } = require('@guilhermegoulart1/relay-core');
+const { TwilioApiError, TWILIO_ERROR_CODES } = require('@brainhours/relay-core');
 
 try {
   await twilio.messaging.sendWhatsApp({ ... });
@@ -913,7 +913,7 @@ const express = require('express');
 const {
   parseTwilioWebhook, validateTwilioSignature, emptyMessagingResponse,
   MessagingEventEmitter, EventTypes
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 const emitter = new MessagingEventEmitter();
 emitter.on(EventTypes.MESSAGE_RECEIVED, (e) => {
@@ -974,7 +974,7 @@ the **bare** E.164 numbers (prefix stripped); `accountId` is the `AccountSid`
 Zero-dep builders for the messaging subset (XML-escaped for you):
 
 ```javascript
-const { messagingResponse, emptyMessagingResponse } = require('@guilhermegoulart1/relay-core');
+const { messagingResponse, emptyMessagingResponse } = require('@brainhours/relay-core');
 
 messagingResponse('Thanks, we got it!');
 // <?xml ...?><Response><Message>Thanks, we got it!</Message></Response>
@@ -1039,7 +1039,7 @@ code**; Relay only ships the URL builder + callback parsers (the redirect and
 callback routes stay in your app, like Unipile's hosted auth).
 
 ```javascript
-const { TwilioProvider } = require('@guilhermegoulart1/relay-core');
+const { TwilioProvider } = require('@brainhours/relay-core');
 
 // One platform-level provider holding YOUR master Auth Token + Connect App SID.
 const twilio = new TwilioProvider({
@@ -1094,7 +1094,7 @@ app.post('/twilio/connect/deauthorize', express.urlencoded({ extended: false }),
 
 Also exported standalone: `buildTwilioConnectAuthorizeUrl`,
 `parseTwilioConnectCallback`, `parseTwilioConnectDeauthorize` (package root), or
-unprefixed from `@guilhermegoulart1/relay-core/providers/twilio`.
+unprefixed from `@brainhours/relay-core/providers/twilio`.
 
 ### Content API (`twilio.content`)
 
@@ -1158,7 +1158,7 @@ NormalizedEvent emission, realtime hooks) and lets you inject `Storage` and
 | `SSERealtimeAdapter` | class | Zero-dep default realtime (single-process SSE) |
 | `InMemoryWebchatStorage` | class | Zero-dep default storage (POCs/tests) |
 | `parseWebchatWebhook(payload)` | fn | Payload → `NormalizedEvent` |
-| `@guilhermegoulart1/relay-webchat-widget` | pkg | Embeddable widget (separate package) |
+| `@brainhours/relay-webchat-widget` | pkg | Embeddable widget (separate package) |
 
 ### Configuration
 
@@ -1170,7 +1170,7 @@ const {
   SSERealtimeAdapter,
   MessagingEventEmitter,
   EventTypes
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 // 1. Storage — InMemory for POCs; write your own DB-backed for production
 const storage = new InMemoryWebchatStorage();
@@ -1202,7 +1202,7 @@ app.use('/api/public/webchat', createWebchatHandler({ storage, realtime, emitter
 // 5. Serve the widget bundle
 app.use('/widget/dist', express.static(
   require('path').dirname(
-    require.resolve('@guilhermegoulart1/relay-webchat-widget/package.json')
+    require.resolve('@brainhours/relay-webchat-widget/package.json')
   ) + '/dist'
 ));
 ```
@@ -1353,7 +1353,7 @@ provider-agnostic.
 You can extend `BaseProvider` to create custom providers:
 
 ```javascript
-const { BaseProvider } = require('@guilhermegoulart1/relay-core');
+const { BaseProvider } = require('@brainhours/relay-core');
 
 class MyProvider extends BaseProvider {
   constructor(config) {

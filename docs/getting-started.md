@@ -5,11 +5,11 @@ This guide will help you get started with Relay for integrating messaging provid
 ## Installation
 
 ```bash
-npm install @guilhermegoulart1/relay-core
+npm install @brainhours/relay-core
 ```
 
 No registry setup or authentication needed — the package is published publicly
-on [npmjs.com](https://www.npmjs.com/package/@guilhermegoulart1/relay-core).
+on [npmjs.com](https://www.npmjs.com/package/@brainhours/relay-core).
 
 ### Requirements
 
@@ -42,7 +42,7 @@ FRONTEND_URL=https://your-app.com
 ### 1. Initialize a Provider
 
 ```javascript
-const { UnipileProvider } = require('@guilhermegoulart1/relay-core');
+const { UnipileProvider } = require('@brainhours/relay-core');
 require('dotenv').config();
 
 const provider = new UnipileProvider({
@@ -80,7 +80,7 @@ await provider.messaging.sendMessage({
 ### 3. Handle Webhooks
 
 ```javascript
-const { parseWebhook, EventTypes } = require('@guilhermegoulart1/relay-core');
+const { parseWebhook, EventTypes } = require('@brainhours/relay-core');
 
 app.post('/webhooks/unipile', (req, res) => {
   const event = parseWebhook('unipile', req.body);
@@ -103,7 +103,7 @@ app.post('/webhooks/unipile', (req, res) => {
 ### 4. Use Event Emitter (Recommended)
 
 ```javascript
-const { MessagingEventEmitter, EventTypes, parseWebhook } = require('@guilhermegoulart1/relay-core');
+const { MessagingEventEmitter, EventTypes, parseWebhook } = require('@brainhours/relay-core');
 
 const emitter = new MessagingEventEmitter();
 

@@ -16,7 +16,7 @@ const {
   WebchatProvider,
   MessagingEventEmitter,
   EventTypes
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 const { AblyWebchatRealtime } = require('./ably-realtime');
 
 const PORT = process.env.PORT || 3000;
@@ -59,7 +59,7 @@ const app = express();
 app.use('/api/public/webchat', createWebchatHandler({ storage, realtime, emitter }));
 
 const widgetDist = path.join(
-  path.dirname(require.resolve('@guilhermegoulart1/relay-webchat-widget/package.json')),
+  path.dirname(require.resolve('@brainhours/relay-webchat-widget/package.json')),
   'dist'
 );
 app.use('/widget/dist', express.static(widgetDist));

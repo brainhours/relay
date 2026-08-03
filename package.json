@@ -5,7 +5,7 @@
   "description": "Unified messaging integrations for Node.js applications",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/guilhermegoulart1/relay.git"
+    "url": "git+https://github.com/brainhours/relay.git"
   },
   "keywords": [
     "messaging",
@@ -20,9 +20,9 @@
   "author": "Guilherme Goulart <guilherme@leadraze.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/guilhermegoulart1/relay/issues"
+    "url": "https://github.com/brainhours/relay/issues"
   },
-  "homepage": "https://github.com/guilhermegoulart1/relay#readme",
+  "homepage": "https://github.com/brainhours/relay#readme",
   "workspaces": [
     "packages/*"
   ],

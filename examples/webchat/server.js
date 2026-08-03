@@ -20,7 +20,7 @@ const {
   WebchatProvider,
   MessagingEventEmitter,
   EventTypes
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 const PORT = process.env.PORT || 3000;
 const WIDGET_KEY = process.env.WIDGET_KEY || 'demo123abcdef0123456789abcdef0123';
@@ -82,7 +82,7 @@ app.use('/api/public/webchat', createWebchatHandler({ storage, realtime, emitter
 
 // Serve the widget bundle from node_modules
 const widgetDist = path.join(
-  path.dirname(require.resolve('@guilhermegoulart1/relay-webchat-widget/package.json')),
+  path.dirname(require.resolve('@brainhours/relay-webchat-widget/package.json')),
   'dist'
 );
 app.use('/widget/dist', express.static(widgetDist));

@@ -13,7 +13,7 @@
  * consuming app can route per-tenant credentials at call time.
  *
  * @example  Send a template
- * const { MetaCloudApiProvider } = require('@guilhermegoulart1/relay-core');
+ * const { MetaCloudApiProvider } = require('@brainhours/relay-core');
  * const meta = new MetaCloudApiProvider({
  *   apiVersion: 'v22.0',
  *   appSecret: process.env.META_APP_SECRET
@@ -28,7 +28,7 @@
  * });
  *
  * @example  Webhook intake
- * const { parseCloudApiWebhook, validateCloudApiSignature } = require('@guilhermegoulart1/relay-core');
+ * const { parseCloudApiWebhook, validateCloudApiSignature } = require('@brainhours/relay-core');
  * app.use('/webhooks/meta', express.json({
  *   verify: (req, _res, buf) => { req.rawBody = buf; }
  * }));

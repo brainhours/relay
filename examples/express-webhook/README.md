@@ -1,6 +1,6 @@
 # Express Webhook Example
 
-This example demonstrates how to use `@guilhermegoulart1/relay-core` with Express.js to handle Unipile webhooks.
+This example demonstrates how to use `@brainhours/relay-core` with Express.js to handle Unipile webhooks.
 
 ## Setup
 

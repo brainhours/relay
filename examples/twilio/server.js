@@ -25,7 +25,7 @@ const {
   MessagingEventEmitter,
   EventTypes,
   TWILIO_ERROR_CODES
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 const PORT = process.env.PORT || 3000;
 const {

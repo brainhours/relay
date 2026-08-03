@@ -1,12 +1,12 @@
-# @guilhermegoulart1/relay-webchat-widget
+# @brainhours/relay-webchat-widget
 
-Embeddable webchat widget for the [@guilhermegoulart1/relay-core](../core) webchat
+Embeddable webchat widget for the [@brainhours/relay-core](../core) webchat
 provider. Vanilla JS, Shadow DOM, ~5kb gzipped, transport-pluggable.
 
 ## Install
 
 ```bash
-npm install @guilhermegoulart1/relay-webchat-widget
+npm install @brainhours/relay-webchat-widget
 ```
 
 You can also self-host: serve `dist/widget.js` from a static path on your
@@ -24,7 +24,7 @@ own server and embed via `<script>`.
 ```
 
 The `data-api-url` must point to wherever your app has mounted
-`createWebchatHandler` from `@guilhermegoulart1/relay-core` (typically under
+`createWebchatHandler` from `@brainhours/relay-core` (typically under
 `/api/public/webchat`).
 
 ## Built-in transports

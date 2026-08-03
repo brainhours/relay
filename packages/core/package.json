@@ -1,5 +1,5 @@
 {
-  "name": "@guilhermegoulart1/relay-core",
+  "name": "@brainhours/relay-core",
   "version": "1.25.1",
   "description": "Core messaging integrations - Unipile, Uazapi (WhatsApp), Meta Cloud API (official WhatsApp), Wati (WhatsApp Business), Twilio (SMS/WhatsApp), Zernio (social publishing + inbox + ads), Webchat and more",
   "main": "src/index.js",
@@ -54,15 +54,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/guilhermegoulart1/relay.git",
+    "url": "git+https://github.com/brainhours/relay.git",
     "directory": "packages/core"
   },
   "author": "Guilherme Goulart <guilherme@leadraze.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/guilhermegoulart1/relay/issues"
+    "url": "https://github.com/brainhours/relay/issues"
   },
-  "homepage": "https://github.com/guilhermegoulart1/relay/tree/main/packages/core#readme",
+  "homepage": "https://github.com/brainhours/relay/tree/main/packages/core#readme",
   "dependencies": {
     "axios": "^1.7.9",
     "form-data": "^4.0.1"

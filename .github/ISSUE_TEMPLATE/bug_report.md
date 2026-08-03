@@ -30,7 +30,7 @@ A clear and concise description of what you expected to happen.
 
 ## Environment
 - Node.js version: [e.g., 18.17.0]
-- @guilhermegoulart1/relay-core version: [e.g., 1.2.0]
+- @brainhours/relay-core version: [e.g., 1.2.0]
 - Provider: [e.g., Unipile]
 - OS: [e.g., Ubuntu 22.04]
 

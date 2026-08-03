@@ -1,4 +1,4 @@
-# @guilhermegoulart1/relay-core
+# @brainhours/relay-core
 
 Core package for Relay - unified messaging integrations for Node.js.
 
@@ -28,11 +28,11 @@ Core package for Relay - unified messaging integrations for Node.js.
 ## Installation
 
 ```bash
-npm install @guilhermegoulart1/relay-core
+npm install @brainhours/relay-core
 ```
 
 No registry setup or authentication needed — the package is published publicly
-on [npmjs.com](https://www.npmjs.com/package/@guilhermegoulart1/relay-core).
+on [npmjs.com](https://www.npmjs.com/package/@brainhours/relay-core).
 
 ### Requirements
 
@@ -72,7 +72,7 @@ FRONTEND_URL=https://your-app.com
 ### Initialize Provider
 
 ```javascript
-const { UnipileProvider } = require('@guilhermegoulart1/relay-core');
+const { UnipileProvider } = require('@brainhours/relay-core');
 
 // Load environment variables
 require('dotenv').config();
@@ -113,7 +113,7 @@ await provider.messaging.send({
 ### Handle Webhooks
 
 ```javascript
-const { parseWebhook, EventTypes } = require('@guilhermegoulart1/relay-core');
+const { parseWebhook, EventTypes } = require('@brainhours/relay-core');
 
 app.post('/webhooks/unipile', (req, res) => {
   const event = parseWebhook('unipile', req.body);
@@ -158,7 +158,7 @@ apps load credentials per tenant from their DB and pass them to each call.
 
 ```javascript
 const { MetaCloudApiProvider, parseCloudApiWebhook, validateCloudApiSignature } =
-  require('@guilhermegoulart1/relay-core');
+  require('@brainhours/relay-core');
 
 const meta = new MetaCloudApiProvider({
   apiVersion: 'v22.0',
@@ -241,14 +241,14 @@ provider ships:
 - `InMemoryWebchatStorage` — zero-dep default storage for examples/POCs
 - `WebchatProvider.messaging.sendMessage(...)` for agent/AI → visitor
 
-Plus the companion package `@guilhermegoulart1/relay-webchat-widget` with the
+Plus the companion package `@brainhours/relay-webchat-widget` with the
 embeddable widget itself.
 
 ```javascript
 const {
   createWebchatHandler, InMemoryWebchatStorage, SSERealtimeAdapter,
   MessagingEventEmitter, EventTypes
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 const storage = new InMemoryWebchatStorage();
 storage.seedChannel({ widgetKey: 'demo', accountId: 'acc-1' });
@@ -276,7 +276,7 @@ and pluggable selection strategies, so you can spread WhatsApp instances
 across multiple Uazapi servers automatically.
 
 ```javascript
-const { UazapiProvider, parseWebhook } = require('@guilhermegoulart1/relay-core');
+const { UazapiProvider, parseWebhook } = require('@brainhours/relay-core');
 
 // Single-server (simplest)
 const uazapi = new UazapiProvider({
@@ -576,7 +576,7 @@ await provider.webhooks.delete('webhook_id');
 Normalized event types across all providers:
 
 ```javascript
-const { EventTypes, parseWebhook } = require('@guilhermegoulart1/relay-core');
+const { EventTypes, parseWebhook } = require('@brainhours/relay-core');
 
 // Available event types
 EventTypes.MESSAGE_RECEIVED     // Incoming message
@@ -616,7 +616,7 @@ const event = parseWebhook('unipile', req.body);
 Optional Bull queue integration for async webhook processing:
 
 ```javascript
-const { createWebhookQueue, addWebhookJob } = require('@guilhermegoulart1/relay-core/queue');
+const { createWebhookQueue, addWebhookJob } = require('@brainhours/relay-core/queue');
 const Redis = require('ioredis');
 
 // Create queue
@@ -684,7 +684,7 @@ Common error codes:
 This package is **CommonJS only** — use `require()`, not `import`:
 
 ```js
-const { UnipileProvider, EventTypes, parseWebhook } = require('@guilhermegoulart1/relay-core');
+const { UnipileProvider, EventTypes, parseWebhook } = require('@brainhours/relay-core');
 ```
 
 **Type declarations are not shipped yet.** TypeScript consumers can still use
@@ -693,7 +693,7 @@ declaration to silence the resolution error:
 
 ```typescript
 // types/relay-core.d.ts
-declare module '@guilhermegoulart1/relay-core';
+declare module '@brainhours/relay-core';
 ```
 
 The source carries JSDoc on most of the public surface, so generating `.d.ts`
@@ -705,7 +705,7 @@ is planned. Contributions welcome — see [CONTRIBUTING.md](../../CONTRIBUTING.m
 
 ```javascript
 const express = require('express');
-const { UnipileProvider, parseWebhook, EventTypes } = require('@guilhermegoulart1/relay-core');
+const { UnipileProvider, parseWebhook, EventTypes } = require('@brainhours/relay-core');
 require('dotenv').config();
 
 const app = express();

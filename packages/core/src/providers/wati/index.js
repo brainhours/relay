@@ -7,7 +7,7 @@
  * (or set defaults in the constructor for single-tenant usage).
  *
  * @example  Stateless (multi-tenant) usage
- * const { WatiProvider } = require('@guilhermegoulart1/relay-core');
+ * const { WatiProvider } = require('@brainhours/relay-core');
  * const wati = new WatiProvider();
  *
  * await wati.messaging.sendText({
@@ -24,7 +24,7 @@
  * });
  *
  * @example  Parse an inbound webhook
- * const { parseWatiWebhook, EventTypes } = require('@guilhermegoulart1/relay-core');
+ * const { parseWatiWebhook, EventTypes } = require('@brainhours/relay-core');
  * const event = parseWatiWebhook(req.body);
  * if (event.type === EventTypes.MESSAGE_RECEIVED) { ...wake the agent... }
  */

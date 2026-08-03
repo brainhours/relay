@@ -37,7 +37,7 @@ const {
   parseWebhook,
   validateWebhookSignature,
   createProvider
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 let passed = 0;
 let failed = 0;
@@ -275,7 +275,7 @@ test('content.create rejects without types/language (returns a rejected promise)
 });
 
 test('TwilioContentManager exported from the package', () => {
-  const pkg = require('@guilhermegoulart1/relay-core');
+  const pkg = require('@brainhours/relay-core');
   assert.equal(typeof pkg.TwilioContentManager, 'function');
 });
 

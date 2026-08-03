@@ -1,7 +1,7 @@
 /**
  * Relay Webchat Widget
  *
- * Embeddable, transport-pluggable chat widget for the @guilhermegoulart1/relay-core
+ * Embeddable, transport-pluggable chat widget for the @brainhours/relay-core
  * webchat provider.
  *
  * Embed via:

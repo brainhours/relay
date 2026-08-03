@@ -1,7 +1,7 @@
 # Twilio Example
 
 Express app demonstrating the **Twilio (SMS / MMS / WhatsApp)** provider in
-`@guilhermegoulart1/relay-core@1.19.0`.
+`@brainhours/relay-core@1.19.0`.
 
 What it shows:
 - Webhook POST: `X-Twilio-Signature` validation + `parseTwilioWebhook` →

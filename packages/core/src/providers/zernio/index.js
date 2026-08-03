@@ -8,7 +8,7 @@
  *   const {
  *     ZernioProvider, parseZernioWebhook, validateZernioSignature,
  *     MessagingEventEmitter, EventTypes
- *   } = require('@guilhermegoulart1/relay-core');
+ *   } = require('@brainhours/relay-core');
  *
  *   const zernio = new ZernioProvider({
  *     apiKey: process.env.ZERNIO_API_KEY,

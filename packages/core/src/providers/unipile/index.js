@@ -2,7 +2,7 @@
  * Unipile Provider - Multi-channel messaging integration
  *
  * @example
- * const { UnipileProvider } = require('@guilhermegoulart1/relay-core');
+ * const { UnipileProvider } = require('@brainhours/relay-core');
  *
  * const unipile = new UnipileProvider({
  *   dsn: process.env.UNIPILE_DSN,

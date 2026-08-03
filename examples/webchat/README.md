@@ -6,7 +6,7 @@ Demonstrates the webchat provider end-to-end with **no external services**:
 - `SSERealtimeAdapter` for realtime fan-out (browser-native EventSource)
 - `MessagingEventEmitter` receiving `NormalizedEvent.MESSAGE_RECEIVED` for every
   visitor message, just like Unipile and Uazapi messages
-- The widget bundle is served from `node_modules/@guilhermegoulart1/relay-webchat-widget/dist/`
+- The widget bundle is served from `node_modules/@brainhours/relay-webchat-widget/dist/`
 
 ## Run
 

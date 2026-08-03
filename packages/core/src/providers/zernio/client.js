@@ -29,7 +29,7 @@
  *   - webhooks     — register / list / update / delete delivery webhooks
  *
  * @example  Publish to LinkedIn + Instagram at once
- * const { ZernioProvider } = require('@guilhermegoulart1/relay-core');
+ * const { ZernioProvider } = require('@brainhours/relay-core');
  * const zernio = new ZernioProvider({ apiKey: process.env.ZERNIO_API_KEY });
  * await zernio.posts.create({
  *   content: 'New drop 🚀',
@@ -47,7 +47,7 @@
  * // redirect the client to authUrl — Meta hosts the WABA + number picker.
  *
  * @example  Webhook intake
- * const { parseZernioWebhook, validateZernioSignature } = require('@guilhermegoulart1/relay-core');
+ * const { parseZernioWebhook, validateZernioSignature } = require('@brainhours/relay-core');
  * app.use('/webhooks/zernio', express.json({ verify: (req,_r,buf){ req.rawBody = buf; } }));
  * app.post('/webhooks/zernio', (req, res) => {
  *   if (!validateZernioSignature(req.rawBody, req.headers['x-zernio-signature'], secret)) {

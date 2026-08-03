@@ -1,7 +1,7 @@
 # Uazapi Webhook Example
 
 Express app demonstrating the Uazapi (WhatsApp) provider in
-`@guilhermegoulart1/relay-core`.
+`@brainhours/relay-core`.
 
 What it shows:
 - Provisioning new WhatsApp instances across a cluster of Uazapi

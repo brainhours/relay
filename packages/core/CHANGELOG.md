@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Scope change (2026-08-03).** This package moved from the personal scope
+> `@guilhermegoulart1/relay-core` to the organization scope
+> `@brainhours/relay-core`, and from GitHub Packages to the public npm registry.
+> Versions up to 1.25.0 were only ever published to GitHub Packages under the
+> old name; 1.25.1 is the first release on npmjs.com. Version numbering is
+> continuous — the entries below apply to both names. Update your dependency to
+> `@brainhours/relay-core`; the old name receives no further releases.
+
 ## [1.25.1] - 2026-08-03
 
 ### Fixed
@@ -87,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     the existing form-encoded path, since the Content API takes JSON (the
     Programmable Messaging API stays form-encoded).
   - Exported from the package root and from
-    `@guilhermegoulart1/relay-core/providers/twilio` (`TwilioContentManager`,
+    `@brainhours/relay-core/providers/twilio` (`TwilioContentManager`,
     `CONTENT_BASE_URL`).
 
 ## [1.19.0] - 2026-06-24
@@ -121,14 +129,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Exported from the package root (`buildTwilioConnectAuthorizeUrl`,
     `parseTwilioConnectCallback`, `parseTwilioConnectDeauthorize`,
     `TwilioConnectManager`) and unprefixed from
-    `@guilhermegoulart1/relay-core/providers/twilio`. Docs in `docs/providers.md`
+    `@brainhours/relay-core/providers/twilio`. Docs in `docs/providers.md`
     and routes in the `examples/twilio` app + smoke test.
 
 ## [1.18.0] - 2026-06-24
 
 ### Added
 
-- **Twilio provider** (`@guilhermegoulart1/relay-core/providers/twilio`):
+- **Twilio provider** (`@brainhours/relay-core/providers/twilio`):
   official Twilio Programmable Messaging integration — **SMS**, **MMS** and
   **WhatsApp** (Twilio's WhatsApp Business sender).
 
@@ -196,7 +204,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Wati provider** (`@guilhermegoulart1/relay-core/providers/wati`): WhatsApp
+- **Wati provider** (`@brainhours/relay-core/providers/wati`): WhatsApp
   Business / BSP integration — `WatiProvider`, messaging/contacts/conversations/
   templates managers, `parseWatiWebhook`, `validateWatiSignature` and the
   `wati` entry in the provider registry / `parseWebhook` / signature dispatch.
@@ -329,7 +337,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `parseWebhook('cloud-api', payload)` returns the array
     - `validateWebhookSignature('cloud-api', rawBody, header, secret)` delegates
     - `MetaCloudApiProvider` exported from package root and from
-      `@guilhermegoulart1/relay-core/providers/cloud-api`
+      `@brainhours/relay-core/providers/cloud-api`
 
 ### New EventTypes
 
@@ -399,7 +407,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `express ^4.18` — required only when `createWebchatHandler` is called
     - `express-rate-limit ^7.0` — used as default rate limiter when present
 
-  New companion package: `@guilhermegoulart1/relay-webchat-widget@1.0.0` —
+  New companion package: `@brainhours/relay-webchat-widget@1.0.0` —
   vanilla-JS embeddable widget (~17kb minified) with built-in SSE and
   WebSocket transports, plus a `RelayWebchat.registerTransport(name, factory)`
   plugin slot for custom transports (Ably, Pusher, etc.).
@@ -465,7 +473,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Wiring:
     - `UazapiProvider` exported from the package root and from
-      `@guilhermegoulart1/relay-core/providers/uazapi`.
+      `@brainhours/relay-core/providers/uazapi`.
     - `createProvider('uazapi', config)` works in the factory.
 
   See [docs/providers.md](../../docs/providers.md) and
@@ -639,7 +647,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updated all documentation with correct package name `@guilhermegoulart1/relay-core`
+- Updated all documentation with correct package name `@brainhours/relay-core`
 - Enhanced README with complete API reference
 - Updated examples with proper installation instructions
 - Added `.env.example` template

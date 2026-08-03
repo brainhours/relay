@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@guilhermegoulart1/relay-core"><img src="https://img.shields.io/npm/v/@guilhermegoulart1/relay-core.svg" alt="npm version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/npm/l/@guilhermegoulart1/relay-core.svg" alt="license"></a>
-  <img src="https://img.shields.io/node/v/@guilhermegoulart1/relay-core.svg" alt="node version">
+  <a href="https://www.npmjs.com/package/@brainhours/relay-core"><img src="https://img.shields.io/npm/v/@brainhours/relay-core.svg" alt="npm version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/@brainhours/relay-core.svg" alt="license"></a>
+  <img src="https://img.shields.io/node/v/@brainhours/relay-core.svg" alt="node version">
 </p>
 
 <p align="center">
@@ -35,8 +35,8 @@
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [@guilhermegoulart1/relay-core](./packages/core) | 1.10.0 | Core messaging integrations (Unipile + Uazapi + Meta Cloud API + Webchat) |
-| [@guilhermegoulart1/relay-webchat-widget](./packages/webchat-widget) | 1.0.0 | Embeddable webchat widget (vanilla JS, transport-pluggable) |
+| [@brainhours/relay-core](./packages/core) | 1.10.0 | Core messaging integrations (Unipile + Uazapi + Meta Cloud API + Webchat) |
+| [@brainhours/relay-webchat-widget](./packages/webchat-widget) | 1.0.0 | Embeddable webchat widget (vanilla JS, transport-pluggable) |
 
 ---
 
@@ -45,11 +45,11 @@
 ### 1. Install
 
 ```bash
-npm install @guilhermegoulart1/relay-core
+npm install @brainhours/relay-core
 ```
 
 No registry setup or authentication needed — the package is published publicly
-on [npmjs.com](https://www.npmjs.com/package/@guilhermegoulart1/relay-core).
+on [npmjs.com](https://www.npmjs.com/package/@brainhours/relay-core).
 
 ### 2. Configure Environment
 
@@ -62,7 +62,7 @@ UNIPILE_ACCESS_TOKEN=your_token_here
 ### 3. Initialize
 
 ```javascript
-const { UnipileProvider } = require('@guilhermegoulart1/relay-core');
+const { UnipileProvider } = require('@brainhours/relay-core');
 require('dotenv').config();
 
 const provider = new UnipileProvider({
@@ -81,7 +81,7 @@ await provider.messaging.sendMessage({
 ### 4. Handle Webhooks
 
 ```javascript
-const { parseWebhook, EventTypes } = require('@guilhermegoulart1/relay-core');
+const { parseWebhook, EventTypes } = require('@brainhours/relay-core');
 
 app.post('/webhooks/unipile', (req, res) => {
   const event = parseWebhook('unipile', req.body);
@@ -126,7 +126,7 @@ const {
   validateCloudApiSignature,
   MessagingEventEmitter,
   EventTypes
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 const meta = new MetaCloudApiProvider({
   apiVersion: 'v22.0',
@@ -188,7 +188,7 @@ const {
   SSERealtimeAdapter,
   MessagingEventEmitter,
   EventTypes
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 const storage = new InMemoryWebchatStorage();
 storage.seedChannel({ widgetKey: 'demo', accountId: 'acc-1' });
@@ -227,7 +227,7 @@ custom for Ably / Pusher / Redis / WebSocket). See
 ### Uazapi (WhatsApp) quick start
 
 ```javascript
-const { UazapiProvider, parseWebhook } = require('@guilhermegoulart1/relay-core');
+const { UazapiProvider, parseWebhook } = require('@brainhours/relay-core');
 
 // Multi-server cluster with heterogeneous capacities (or pass a single
 // { baseUrl, adminToken } for a single server)
@@ -270,7 +270,7 @@ const {
   emptyMessagingResponse,
   MessagingEventEmitter,
   EventTypes
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 const twilio = new TwilioProvider({
   accountSid: process.env.TWILIO_ACCOUNT_SID,
@@ -332,7 +332,7 @@ const {
   validateZernioSignature,
   MessagingEventEmitter,
   EventTypes
-} = require('@guilhermegoulart1/relay-core');
+} = require('@brainhours/relay-core');
 
 const zernio = new ZernioProvider({
   apiKey: process.env.ZERNIO_API_KEY,

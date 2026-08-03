@@ -1,7 +1,7 @@
 # Cloud API Example
 
 Express app demonstrating the **official Meta WhatsApp Cloud API** provider in
-`@guilhermegoulart1/relay-core@1.10.0`.
+`@brainhours/relay-core@1.10.0`.
 
 What it shows:
 - Webhook GET handshake (`hub.verify_token`)

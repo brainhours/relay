@@ -19,7 +19,7 @@
  * see `validateTwilioSignature`.
  *
  * @example  Send a WhatsApp message
- * const { TwilioProvider } = require('@guilhermegoulart1/relay-core');
+ * const { TwilioProvider } = require('@brainhours/relay-core');
  * const twilio = new TwilioProvider({
  *   accountSid: process.env.TWILIO_ACCOUNT_SID,
  *   authToken:  process.env.TWILIO_AUTH_TOKEN
@@ -31,7 +31,7 @@
  * });
  *
  * @example  Webhook intake (form-encoded — NOT JSON)
- * const { parseTwilioWebhook, validateTwilioSignature } = require('@guilhermegoulart1/relay-core');
+ * const { parseTwilioWebhook, validateTwilioSignature } = require('@brainhours/relay-core');
  * app.post('/webhooks/twilio', express.urlencoded({ extended: false }), (req, res) => {
  *   const url = `https://${req.headers.host}${req.originalUrl}`;
  *   if (!validateTwilioSignature(url, req.body, req.headers['x-twilio-signature'], authToken)) {
