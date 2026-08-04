@@ -36,12 +36,19 @@ const UNIPILE_EVENT_MAP = {
  * @returns {{ eventType: string, payload: Object }}
  */
 function parseUnipileWebhookRaw(rawPayload) {
+  // Guard against a body that is not an object. A webhook endpoint receives
+  // whatever the network hands it — an empty POST, `null` from JSON.parse('null'),
+  // a string. Object.keys() throws on null/undefined, which would turn a
+  // malformed request into a 500 and, after enough of them, get the webhook
+  // disabled on the provider side.
+  const body = rawPayload && typeof rawPayload === 'object' ? rawPayload : {};
+
   // Check for event key format: { "EventType": { ... } }
-  const eventKeys = Object.keys(rawPayload);
+  const eventKeys = Object.keys(body);
 
   for (const key of eventKeys) {
     if (UNIPILE_EVENT_MAP[key]) {
-      const eventData = rawPayload[key];
+      const eventData = body[key];
       return {
         eventType: UNIPILE_EVENT_MAP[key],
         originalEventKey: key,
@@ -51,11 +58,11 @@ function parseUnipileWebhookRaw(rawPayload) {
   }
 
   // Fallback: legacy format with event/type field
-  const eventType = rawPayload.event || rawPayload.type;
+  const eventType = body.event || body.type;
   return {
     eventType: eventType || EventTypes.UNKNOWN,
     originalEventKey: null,
-    payload: rawPayload
+    payload: body
   };
 }
 

@@ -538,10 +538,16 @@ function parseGoPayload(rawPayload) {
  * @returns {NormalizedEvent}
  */
 function parseUazapiWebhook(rawPayload = {}) {
-  if (isUazapiGoPayload(rawPayload)) {
-    return parseGoPayload(rawPayload);
+  // The `= {}` default only covers `undefined`. A body of `null` (which is what
+  // JSON.parse('null') yields, and what an empty POST can produce) would slip
+  // through and throw on the first property read — turning a malformed request
+  // into a 500, and eventually into a webhook disabled on the provider side.
+  const body = rawPayload && typeof rawPayload === 'object' ? rawPayload : {};
+
+  if (isUazapiGoPayload(body)) {
+    return parseGoPayload(body);
   }
-  return parseClassicPayload(rawPayload);
+  return parseClassicPayload(body);
 }
 
 /**
