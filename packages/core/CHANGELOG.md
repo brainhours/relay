@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > continuous — the entries below apply to both names. Update your dependency to
 > `@brainhours/relay-core`; the old name receives no further releases.
 
+## [2.0.1] - 2026-08-03
+
+### Fixed
+
+- **`require('@brainhours/relay-core/package.json')` falhava com
+  `ERR_PACKAGE_PATH_NOT_EXPORTED`.** Quando um pacote declara `exports`, apenas
+  os subpaths listados existem para o resolvedor do Node — e `./package.json`
+  não estava entre eles. Ferramentas que leem a versão do pacote assim
+  (scanners de dependência, bundlers, scripts de diagnóstico) quebravam.
+  Encontrado ao instalar o pacote num projeto real.
+
+### Changed
+
+- Copyright do projeto passa a ser da **Brain Hours Company**, a organização
+  que mantém o repositório. A autoria (`author`) segue sendo de Guilherme
+  Goulart — titularidade e autoria são coisas distintas.
+
 ## [2.0.0] - 2026-08-03
 
 ### Removed
