@@ -199,10 +199,19 @@ function validateUnipileSignature(payload, signature, secret) {
     .update(JSON.stringify(payload))
     .digest('hex');
 
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+  // timingSafeEqual THROWS on buffers of different lengths, so the comparison
+  // has to be guarded: without this, any request carrying a short or malformed
+  // signature header crashes the route instead of being rejected — a denial of
+  // service reachable by anyone who can reach the endpoint.
+  const provided = Buffer.from(String(signature), 'utf-8');
+  const expected = Buffer.from(expectedSignature, 'utf-8');
+  if (provided.length !== expected.length) return false;
+
+  try {
+    return crypto.timingSafeEqual(provided, expected);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -216,7 +225,11 @@ function generateWebhookJobId(event) {
     'unipile',
     event.type,
     event.accountId,
-    event.messageId || event.chatId || Date.now()
+    // `event.timestamp` and NOT Date.now(): this id exists to deduplicate jobs
+    // in the queue, so it has to be a pure function of the event. With Date.now()
+    // the same webhook delivered twice produced two different ids and both got
+    // processed — the exact thing the dedup is there to prevent.
+    event.messageId || event.chatId || event.timestamp
   ].filter(Boolean);
 
   return parts.join(':');
