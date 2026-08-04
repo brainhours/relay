@@ -28,9 +28,9 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "test": "echo \"Tests pending\"",
-    "lint": "eslint packages/*/src --ext .js",
-    "lint:fix": "eslint packages/*/src --ext .js --fix",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint packages/*/src packages/*/test --ext .js",
+    "lint:fix": "eslint packages/*/src packages/*/test --ext .js --fix",
     "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules",
     "prepare": "npm run build"
   },
