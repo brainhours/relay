@@ -193,6 +193,68 @@ class UnipileCompanyManager {
       timeout: 30000
     });
   }
+
+  /**
+   * List the open job postings of a company.
+   *
+   * Why this exists: the company profile does NOT carry a vacancy count.
+   * `getOne` returns 25 fields and the only one matching /job/ is
+   * `viewer_permissions.canCreateJobPosting`, which says whether the
+   * authenticated user may publish a job — not how many are open. Verified
+   * against the live API on 2026-08-04. Callers that expected `job_count` on the
+   * company payload were silently receiving `undefined`.
+   *
+   * The vacancies come from the jobs search with a company filter — the same
+   * shape as `getEmployees` above. This wrapper exists so callers don't have to
+   * know that a company-scoped question is answered by a global search endpoint.
+   *
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.company_id - Numeric LinkedIn company ID (required)
+   * @param {string} [params.date_posted] - 'past_24_hours' | 'past_week' | 'past_month'
+   * @param {string|string[]} [params.location] - Location filter (ID or array of IDs)
+   * @param {number} [params.limit=25] - Page size
+   * @param {string} [params.cursor] - Pagination cursor
+   * @returns {Promise<Object>} `{ items, paging, cursor }` — each item carries
+   *   title, location, posted_at, url, promoted, easy_apply and company.
+   *
+   * @example
+   * const { items } = await company.getJobs({
+   *   account_id: 'acc_123',
+   *   company_id: '1441'
+   * });
+   */
+  async getJobs(params) {
+    const { account_id, company_id, date_posted, location, limit = 25, cursor } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required');
+    }
+
+    if (!company_id) {
+      throw new Error('company_id is required');
+    }
+
+    const url = `${this.provider.getBaseUrl()}/linkedin/search?account_id=${account_id}`;
+
+    const body = {
+      category: 'jobs',
+      api: 'classic',
+      company: [String(company_id)],
+      limit
+    };
+
+    if (date_posted) body.date_posted = date_posted;
+    if (location) body.location = Array.isArray(location) ? location : [location];
+    if (cursor) body.cursor = cursor;
+
+    return this.provider.request({
+      method: 'POST',
+      url,
+      data: body,
+      timeout: 30000
+    });
+  }
 }
 
 module.exports = { UnipileCompanyManager };
