@@ -13,6 +13,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > continuous — the entries below apply to both names. Update your dependency to
 > `@brainhours/relay-core`; the old name receives no further releases.
 
+## [2.2.0] - 2026-10-13
+
+### Added
+
+- **`users.getComments({ account_id, identifier, limit?, cursor? })`** e
+  **`users.getReactions(...)`** — os comentários que uma pessoa escreveu e as
+  reações que ela deu, em posts dela ou de outros
+  (`GET /users/{id}/comments` e `/reactions`). Base do acompanhamento de
+  atividade de leads.
+- **`users.getOne(accountId, userId, { linkedin_sections })`** — pede só as
+  seções necessárias (ex.: `['experience']`), bem mais leve que o `*` do
+  `getFullProfile`. Sem o terceiro argumento, a chamada é a de sempre.
+- **`company.getEmployees({ location })`** — filtro por ids de localidade
+  (array é OU).
+- `UnipileUserManager` passa a ser exportado por `providers/unipile/client`,
+  para teste.
+
+### Fixed
+
+- **`reactions.add` nunca funcionou.** Mandava `POST /posts/{id}/reactions`
+  (account_id na URL, tipo em maiúsculas), rota que não existe na v1: a
+  Unipile devolvia 404 "Cannot POST". Agora é `POST /posts/reaction` com
+  `account_id`, `post_id`, `reaction_type` (minúsculas) e, opcionais,
+  `comment_id` e `as_organization` no corpo. Medido contra uma conta real em
+  14/10/2026: 201 `{ object: 'ReactionAdded' }`. `REACTION_TYPES` continua em
+  maiúsculas (é o que a listagem devolve).
+- **`reactions.remove` passa a falhar com `code: 'not_supported'`**, sem chamar
+  a API. A v1 não tem remoção de reação (`DELETE /posts/reaction` e
+  `DELETE /posts/{id}/reactions` dão 404); só a v2 tem, em outro host.
+- **`users.getRelations` devolvia o id da pessoa só em `member_id`.** Quem lia
+  `provider_id` (o nome usado em todo o resto da API) montava um conjunto vazio
+  sem erro nenhum. Agora cada item ganha `provider_id` quando ele falta; nada é
+  removido.
+
 ## [2.0.1] - 2026-08-03
 
 ### Fixed

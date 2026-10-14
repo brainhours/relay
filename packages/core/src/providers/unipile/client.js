@@ -238,10 +238,18 @@ class UnipileUserManager {
    * Get a user by ID
    * @param {string} accountId
    * @param {string} userId
+   * @param {Object} [options]
+   * @param {string|string[]} [options.linkedin_sections] - Seções do perfil (ex.: ['experience'])
    * @returns {Promise<Object>}
    */
-  async getOne(accountId, userId) {
-    const url = `${this.provider.getBaseUrl()}/users/${userId}?account_id=${accountId}`;
+  async getOne(accountId, userId, options = {}) {
+    let url = `${this.provider.getBaseUrl()}/users/${userId}?account_id=${accountId}`;
+    // Seções pedidas uma a uma (ex.: ['experience']) saem bem mais leves que o
+    // `*` do getFullProfile — o LinkedIn segura uso intenso de seções.
+    const sections = options.linkedin_sections;
+    if (sections && (!Array.isArray(sections) || sections.length > 0)) {
+      url += `&linkedin_sections=${encodeURIComponent(Array.isArray(sections) ? sections.join(',') : sections)}`;
+    }
     return this.provider.request({ method: 'GET', url });
   }
 
@@ -533,6 +541,65 @@ class UnipileUserManager {
 
     if (limit) url += `&limit=${limit}`;
     if (cursor) url += `&cursor=${cursor}`;
+
+    const response = await this.provider.request({
+      method: 'GET',
+      url,
+      timeout: 30000
+    });
+
+    // A Unipile devolve o id da pessoa em `member_id`, não em `provider_id` —
+    // quem lia `provider_id` montava um conjunto vazio sem perceber. Copia
+    // para `provider_id` quando ele falta, sem tirar nada do item.
+    if (response && Array.isArray(response.items)) {
+      response.items = response.items.map((item) => (
+        item && !item.provider_id && item.member_id ? { ...item, provider_id: item.member_id } : item
+      ));
+    }
+    return response;
+  }
+
+  /**
+   * Comentários que o usuário escreveu em posts (dele ou de outros)
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.identifier - Provider id do usuário (required)
+   * @param {number} [params.limit] - Máximo por página
+   * @param {string} [params.cursor] - Cursor de paginação
+   * @returns {Promise<Object>} { items: [{ id, post_id, post_urn, date, text, ... }], cursor }
+   */
+  async getComments(params) {
+    return this._listActivity('comments', params);
+  }
+
+  /**
+   * Reações que o usuário deu em posts ou comentários
+   * @param {Object} params
+   * @param {string} params.account_id - Unipile account ID (required)
+   * @param {string} params.identifier - Provider id do usuário (required)
+   * @param {number} [params.limit] - Máximo por página
+   * @param {string} [params.cursor] - Cursor de paginação
+   * @returns {Promise<Object>} { items: [{ value, post_id, comment_id?, author }], cursor }
+   */
+  async getReactions(params) {
+    return this._listActivity('reactions', params);
+  }
+
+  async _listActivity(kind, params = {}) {
+    const { account_id, identifier, limit, cursor } = params;
+
+    if (!account_id) {
+      throw new Error('account_id is required');
+    }
+
+    if (!identifier) {
+      throw new Error('identifier is required');
+    }
+
+    let url = `${this.provider.getBaseUrl()}/users/${encodeURIComponent(identifier)}/${kind}?account_id=${account_id}`;
+
+    if (limit) url += `&limit=${limit}`;
+    if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
 
     return this.provider.request({
       method: 'GET',
@@ -1428,4 +1495,4 @@ class UnipileMessagingManager {
   }
 }
 
-module.exports = { UnipileProvider };
+module.exports = { UnipileProvider, UnipileUserManager };

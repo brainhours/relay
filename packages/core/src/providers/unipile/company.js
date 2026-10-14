@@ -160,7 +160,7 @@ class UnipileCompanyManager {
    * @returns {Promise<Object>}
    */
   async getEmployees(params) {
-    const { account_id, company_id, keywords, job_title, limit = 25, cursor } = params;
+    const { account_id, company_id, keywords, job_title, location, limit = 25, cursor } = params;
 
     if (!account_id) {
       throw new Error('account_id is required');
@@ -184,6 +184,10 @@ class UnipileCompanyManager {
 
     if (keywords) body.keywords = keywords;
     if (job_title) body.job_title = Array.isArray(job_title) ? job_title : [job_title];
+    // Ids de localidade (`/linkedin/search/parameters?type=LOCATION`), nunca
+    // texto livre. Array é OU de verdade: medido em 27/08/2026 na Globo,
+    // [Rio, São Paulo] devolveu 7 de São Paulo e 3 do Rio na mesma página.
+    if (location) body.location = Array.isArray(location) ? location : [location];
     if (cursor) body.cursor = cursor;
 
     return this.provider.request({

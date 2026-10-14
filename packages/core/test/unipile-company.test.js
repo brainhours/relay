@@ -81,12 +81,32 @@ describe('getEmployees', () => {
     assert.deepEqual(ULTIMA(chamadas).data.job_title, ['CTO', 'CEO']);
   });
 
+  test('location aceita id solto ou array e sempre sai array', async () => {
+    const { gerente, chamadas } = criarGerente();
+    await gerente.getEmployees({ account_id: 'a1', company_id: '1', location: '106701406' });
+    assert.deepEqual(ULTIMA(chamadas).data.location, ['106701406']);
+    await gerente.getEmployees({ account_id: 'a1', company_id: '1', location: ['106701406', '104746682'] });
+    assert.deepEqual(ULTIMA(chamadas).data.location, ['106701406', '104746682']);
+  });
+
+  test('empresa, termo e local convivem no mesmo corpo', async () => {
+    const { gerente, chamadas } = criarGerente();
+    await gerente.getEmployees({
+      account_id: 'a1', company_id: '7293', keywords: 'head', location: ['106701406'],
+    });
+    const { data } = ULTIMA(chamadas);
+    assert.deepEqual(data.company, ['7293']);
+    assert.equal(data.keywords, 'head');
+    assert.deepEqual(data.location, ['106701406']);
+  });
+
   test('opcionais ausentes não entram no corpo', async () => {
     const { gerente, chamadas } = criarGerente();
     await gerente.getEmployees({ account_id: 'a1', company_id: '1' });
     const { data } = ULTIMA(chamadas);
     assert.equal('keywords' in data, false);
     assert.equal('job_title' in data, false);
+    assert.equal('location' in data, false);
     assert.equal('cursor' in data, false);
   });
 });

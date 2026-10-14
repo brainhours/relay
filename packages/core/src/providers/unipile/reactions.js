@@ -26,15 +26,23 @@ class UnipileReactionsManager {
   }
 
   /**
-   * Add a reaction to a post
+   * Add a reaction to a post (or to a comment, with comment_id)
+   *
+   * A rota da v1 é `POST /posts/reaction`, com tudo no CORPO e o tipo em
+   * minúsculas. A forma anterior (`POST /posts/{id}/reactions`, account_id na
+   * URL, tipo em maiúsculas) não existe: a Unipile devolve 404 "Cannot POST".
+   * Medido em 14/10/2026 contra uma conta real — 201 { object: 'ReactionAdded' }.
+   *
    * @param {Object} params
    * @param {string} params.account_id - Unipile account ID (required)
-   * @param {string} params.post_id - Post ID (required)
-   * @param {string} [params.reaction_type='LIKE'] - Reaction type: LIKE, CELEBRATE, SUPPORT, LOVE, INSIGHTFUL, FUNNY
-   * @returns {Promise<Object>}
+   * @param {string} params.post_id - social_id do post, em URN (required)
+   * @param {string} [params.reaction_type='like'] - like, celebrate, support, love, insightful, funny (aceita maiúsculas)
+   * @param {string} [params.comment_id] - reage a um comentário do post, não ao post
+   * @param {string} [params.as_organization] - reage como uma página que a conta administra
+   * @returns {Promise<Object>} { object: 'ReactionAdded' }
    */
   async add(params) {
-    const { account_id, post_id, reaction_type = 'LIKE' } = params;
+    const { account_id, post_id, reaction_type = 'like', comment_id, as_organization } = params;
 
     if (!account_id) {
       throw new Error('account_id is required');
@@ -44,48 +52,36 @@ class UnipileReactionsManager {
       throw new Error('post_id is required');
     }
 
-    // Validate reaction type
-    const validTypes = Object.values(REACTION_TYPES);
-    const normalizedType = reaction_type.toUpperCase();
-    if (!validTypes.includes(normalizedType)) {
+    const tipo = String(reaction_type).toLowerCase();
+    // REACTION_TYPES segue em maiúsculas (é o que a listagem devolve e o que
+    // quem consome compara); o envio é que pede minúsculas.
+    const validTypes = Object.values(REACTION_TYPES).map((v) => v.toLowerCase());
+    if (!validTypes.includes(tipo)) {
       throw new Error(`Invalid reaction_type. Must be one of: ${validTypes.join(', ')}`);
     }
 
-    const url = `${this.provider.getBaseUrl()}/posts/${encodeURIComponent(post_id)}/reactions?account_id=${account_id}`;
+    const data = { account_id, post_id, reaction_type: tipo };
+    if (comment_id) data.comment_id = comment_id;
+    if (as_organization) data.as_organization = as_organization;
 
     return this.provider.request({
       method: 'POST',
-      url,
-      data: { reaction_type: normalizedType },
+      url: `${this.provider.getBaseUrl()}/posts/reaction`,
+      data,
       timeout: 30000
     });
   }
 
   /**
-   * Remove a reaction from a post
-   * @param {Object} params
-   * @param {string} params.account_id - Unipile account ID (required)
-   * @param {string} params.post_id - Post ID (required)
-   * @returns {Promise<Object>}
+   * Remover reação NÃO existe na API v1 da Unipile (nem `DELETE /posts/reaction`
+   * nem `DELETE /posts/{id}/reactions` — ambos 404, medido em 14/10/2026). Só a
+   * v2 tem, em outro host e com outro formato de id. Falha cedo e com clareza
+   * em vez de mandar uma requisição que nunca funcionou.
    */
-  async remove(params) {
-    const { account_id, post_id } = params;
-
-    if (!account_id) {
-      throw new Error('account_id is required');
-    }
-
-    if (!post_id) {
-      throw new Error('post_id is required');
-    }
-
-    const url = `${this.provider.getBaseUrl()}/posts/${encodeURIComponent(post_id)}/reactions?account_id=${account_id}`;
-
-    return this.provider.request({
-      method: 'DELETE',
-      url,
-      timeout: 30000
-    });
+  async remove() {
+    const err = new Error('Removing a reaction is not supported by the Unipile v1 API');
+    err.code = 'not_supported';
+    throw err;
   }
 
   /**
