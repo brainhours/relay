@@ -314,6 +314,29 @@ await zernio.messaging.send({
   message: 'Thanks for reaching out!'
 });
 
+// Instagram / Messenger cards (carousel): up to 10 cards, 3 buttons each.
+// Validated locally (title/subtitle ≤ 80, button ≤ 20) before anything is sent.
+await zernio.messaging.sendCards({
+  conversationId,
+  accountId: igAccountId,
+  cards: [
+    {
+      title: 'Monthly plan',
+      subtitle: '2 classes a week',
+      imageUrl: 'https://cdn.example.com/monthly.jpg', // host it yourself, JPEG
+      buttons: [{ type: 'postback', title: 'I want this', payload: 'PLAN_MONTHLY' }]
+    },
+    {
+      title: 'Trial class',
+      buttons: [{ type: 'url', title: 'Book now', url: 'https://example.com/book' }]
+    }
+  ]
+});
+// A tap on a postback button comes back as MESSAGE_RECEIVED with
+// event.metadata.postback = { payload: 'PLAN_MONTHLY', title: 'I want this' }.
+// The echo of the carousel (MESSAGE_SENT) has empty content and
+// event.metadata.cards = [{ title, subtitle?, imageUrl?, buttons? }].
+
 // Webhook intake (JSON; capture the raw body for signature verification)
 const emitter = new MessagingEventEmitter();
 app.use('/webhooks/zernio', express.json({

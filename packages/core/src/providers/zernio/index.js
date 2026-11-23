@@ -46,6 +46,7 @@ const { ZernioAdsManager } = require('./ads');
 const { ZernioEngagementManager } = require('./engagement');
 const { ZernioWebhooksManager, ZERNIO_WEBHOOK_EVENTS } = require('./webhooks-manager');
 const { ZernioApiError, ZERNIO_ERROR_CODES, isRetryable } = require('./errors');
+const { CARD_LIMITS, ZernioCardsError, buildCardsTemplate, parseCards, cardsFromMessage } = require('./cards');
 const {
   parseZernioWebhook,
   validateZernioSignature,
@@ -77,6 +78,13 @@ module.exports = {
   ZernioApiError,
   ZERNIO_ERROR_CODES,
   isRetryable,
+
+  // Cards (Instagram / Messenger carousel)
+  CARD_LIMITS,
+  ZernioCardsError,
+  buildCardsTemplate,
+  parseCards,
+  cardsFromMessage,
 
   // Webhook utilities
   parseZernioWebhook,

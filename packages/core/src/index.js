@@ -66,7 +66,12 @@ const {
   generateWebhookJobId: generateZernioWebhookJobId,
   ZERNIO_EVENT_MAP,
   ZERNIO_WEBHOOK_EVENTS,
-  PLATFORM_TO_PROVIDER_TYPE: ZERNIO_PLATFORM_TO_PROVIDER_TYPE
+  PLATFORM_TO_PROVIDER_TYPE: ZERNIO_PLATFORM_TO_PROVIDER_TYPE,
+  CARD_LIMITS: ZERNIO_CARD_LIMITS,
+  ZernioCardsError,
+  buildCardsTemplate: buildZernioCardsTemplate,
+  parseCards: parseZernioCards,
+  cardsFromMessage: zernioCardsFromMessage
 } = require('./providers/zernio');
 
 // Twilio (SMS / MMS / WhatsApp) sub-modules (v1.18.0+)
@@ -221,6 +226,11 @@ module.exports = {
   ZERNIO_EVENT_MAP,
   ZERNIO_WEBHOOK_EVENTS,
   ZERNIO_PLATFORM_TO_PROVIDER_TYPE,
+  ZERNIO_CARD_LIMITS,
+  ZernioCardsError,
+  buildZernioCardsTemplate,
+  parseZernioCards,
+  zernioCardsFromMessage,
 
   // Twilio (SMS / MMS / WhatsApp) (v1.18.0+)
   TwilioMessagingManager,

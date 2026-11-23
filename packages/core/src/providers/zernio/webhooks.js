@@ -20,6 +20,7 @@
 
 const { createHmac, timingSafeEqual } = require('crypto');
 const { EventTypes, NormalizedEvent, ProviderTypes } = require('../../events/types');
+const { parseCards } = require('./cards');
 
 /**
  * Zernio `event` → normalized EventType. Events without a messaging-centric
@@ -116,6 +117,29 @@ function parseZernioWebhook(rawPayload = {}) {
       businessScopedUserId: sender.businessScopedUserId,
       contactId: sender.contactId
     });
+
+    // Interactive extras ride in the ENVELOPE's `metadata` (a sibling of
+    // `message`), not inside the message — see ./cards.js for what was measured.
+    const extra = {
+      ...(m.metadata && typeof m.metadata === 'object' ? m.metadata : {}),
+      ...(p.metadata && typeof p.metadata === 'object' ? p.metadata : {})
+    };
+
+    // Tap on a postback button (Instagram/Messenger card or button template):
+    // a regular inbound message whose text is the button title. The payload is
+    // what lets a consumer route the tap without matching on the label.
+    if (extra.postbackPayload != null || extra.postbackTitle != null) {
+      metadata.postback = {
+        payload: extra.postbackPayload != null ? String(extra.postbackPayload) : null,
+        title: extra.postbackTitle != null ? String(extra.postbackTitle) : (m.text || null)
+      };
+    }
+
+    // Cards (carousel): the echo comes with EMPTY text and no attachments, so
+    // without this a consumer sees a blank message and tends to drop it.
+    const cards = parseCards(extra.metaInteractive);
+    if (cards) metadata.cards = cards;
+
     return new NormalizedEvent({
       ...base,
       providerType: mapPlatform(platform),

@@ -13,6 +13,7 @@
  * getMessages / getChats).
  */
 const { BaseMessagingManager } = require('../base');
+const { buildCardsTemplate } = require('./cards');
 
 class ZernioMessagingManager extends BaseMessagingManager {
   constructor(provider) {
@@ -72,7 +73,10 @@ class ZernioMessagingManager extends BaseMessagingManager {
    * @param {boolean} [params.voiceNote]       - WhatsApp PTT (audio .ogg/opus)
    * @param {Array}  [params.quickReplies]
    * @param {Array}  [params.buttons]
-   * @param {Object} [params.template]         - WhatsApp template: { elements:[{name,language,components}] }
+   * @param {Object} [params.template]         - WhatsApp template: { elements:[{name,language,components}] };
+   *                                             Instagram/Messenger carousel: { type:'generic', elements:[…] }
+   *                                             (use `sendCards`, which validates). Exclusive with
+   *                                             `buttons` and `quickReplies`.
    * @param {Object} [params.interactive]      - WhatsApp interactive (list/cta_url/flow/location_request)
    * @returns {Promise<Object>}
    */
@@ -83,6 +87,37 @@ class ZernioMessagingManager extends BaseMessagingManager {
       method: 'POST',
       path: `/inbox/conversations/${encodeURIComponent(conversationId)}/messages`,
       data: body
+    });
+  }
+
+  /**
+   * Send cards (carousel) into an Instagram / Messenger conversation.
+   *
+   * Validates locally against the limits Zernio enforces (see ./cards.js) and
+   * sends `template: { type: 'generic', elements }`. Renders only in the mobile
+   * app; the 24h messaging window applies. The send succeeds even when Meta
+   * cannot display an image — host card images yourself (JPEG).
+   *
+   * @param {Object} params
+   * @param {string} params.conversationId
+   * @param {string} params.accountId          - REQUIRED
+   * @param {Array<Object>} params.cards       - 1–10 of { title, subtitle?, imageUrl?, buttons? };
+   *        button = { type:'url', title, url } | { type:'postback', title, payload? }
+   * @param {string} [params.messagingType]
+   * @param {string} [params.messageTag]
+   * @returns {Promise<Object>}
+   * @throws {ZernioCardsError} when the cards break a limit (nothing is sent)
+   */
+  sendCards({ conversationId, accountId, cards, messagingType, messageTag } = {}) {
+    if (!conversationId) throw new Error('zernio.messaging.sendCards: `conversationId` is required');
+    if (!accountId) throw new Error('zernio.messaging.sendCards: `accountId` is required');
+    const template = buildCardsTemplate(cards);
+    return this.send({
+      conversationId,
+      accountId,
+      template,
+      ...(messagingType ? { messagingType } : {}),
+      ...(messageTag ? { messageTag } : {})
     });
   }
 

@@ -13,6 +13,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > continuous — the entries below apply to both names. Update your dependency to
 > `@brainhours/relay-core`; the old name receives no further releases.
 
+## [2.3.0] - 2026-11-23
+
+### Added
+
+- **Cartões (carrossel) na DM do Instagram / Messenger, via Zernio.**
+  `zernio.messaging.sendCards({ conversationId, accountId, cards })` valida e
+  envia `template: { type: 'generic', elements }`. Cada cartão:
+  `{ title, subtitle?, imageUrl?, buttons? }`; botão é
+  `{ type: 'url', title, url }` ou `{ type: 'postback', title, payload? }`
+  (sem `payload`, vai o título).
+- **`buildCardsTemplate(cards)`**, **`CARD_LIMITS`** e **`ZernioCardsError`**
+  (`code` + `path`) — a validação sozinha, pura, para quem quer conferir antes
+  de enfileirar. Limites medidos contra a Zernio em 21/11/2026 (ela responde
+  400 `invalid_field_value`): 10 cartões, 3 botões por cartão, título ≤ 80,
+  descrição ≤ 80, texto do botão ≤ 20.
+- **Webhook: `metadata.postback = { payload, title }`** em `message.received`
+  quando o contato toca num botão de resposta. Chega como mensagem comum, com
+  o texto igual ao título do botão; o `payload` é o que permite rotear o toque
+  sem casar pelo rótulo.
+- **Webhook: `metadata.cards`** em mensagens que são carrossel. O eco
+  (`message.sent`) vem com texto vazio e sem anexo — os cartões ficam em
+  `metadata.metaInteractive`, no envelope, ao lado de `message`. Sem isto o
+  consumidor enxerga uma mensagem em branco e tende a descartá-la (foi o que
+  aconteceu na GetRaze).
+- **`parseCards(metaInteractive)`** e **`cardsFromMessage(msg)`** — a mesma
+  leitura para a resposta de `messaging.getMessages`, onde os cartões vêm
+  dentro da mensagem (`msg.metadata.metaInteractive`).
+- Na raiz do pacote os nomes ganham prefixo: `buildZernioCardsTemplate`,
+  `parseZernioCards`, `zernioCardsFromMessage`, `ZERNIO_CARD_LIMITS`,
+  `ZernioCardsError`.
+
+### Notes
+
+- O carrossel só é desenhado no aplicativo do Instagram no celular e respeita
+  a janela de 24h.
+- `template` não convive com `buttons` nem `quickReplies` no topo, e não leva
+  `message`.
+- **A imagem pode falhar calada.** O envio volta 200 mesmo quando a Meta não
+  consegue exibir a imagem: um PNG servido por gerador de placeholder saiu sem
+  imagem; JPEG de CDN comum apareceu. Hospede as imagens dos cartões.
+- Nada muda para quem já chamava `messaging.send({ template })` direto: o
+  corpo continua sendo repassado como veio.
+
 ## [2.2.0] - 2026-10-13
 
 ### Added
