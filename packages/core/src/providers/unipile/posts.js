@@ -68,11 +68,14 @@ class UnipilePostsManager {
       return response.data;
     }
 
-    // Simple text post
+    // Simple text post. The JSON body needs account_id too: like multipart,
+    // Unipile ignores the query-string account_id and answers 400
+    // "Required property /account_id" — every text-only post failed this way
+    // until 2.3.1 (posts with media were masking it).
     return this.provider.request({
       method: 'POST',
       url,
-      data: { text, visibility },
+      data: { account_id, text, visibility },
       timeout: 30000
     });
   }

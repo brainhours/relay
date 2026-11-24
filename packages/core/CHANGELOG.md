@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > continuous — the entries below apply to both names. Update your dependency to
 > `@brainhours/relay-core`; the old name receives no further releases.
 
+## [2.3.1] - 2026-11-24
+
+### Fixed
+
+- **`posts.create` without attachments never worked.** The text-only branch
+  sent `account_id` only in the query string and a JSON body of
+  `{ text, visibility }`; Unipile requires `account_id` in the body and
+  answered `400 "One or more request parameters are invalid or missing" …
+  path "/account_id", "Required property"`. Posts with media go through the
+  multipart branch, which already appends `account_id` to the form, so only
+  text-only posts failed. The JSON body now carries `account_id` too.
+
 ## [2.3.0] - 2026-11-23
 
 ### Added
